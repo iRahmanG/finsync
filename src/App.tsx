@@ -10,9 +10,10 @@ import {
   TransactionTable,
 } from './components'
 import { PdfStatement, StatementEmail } from './renderers'
+import { CanvasSummary } from './renderers'
 
 function App() {
-  const [view, setView] = useState<'web' | 'email' | 'pdf'>('web')
+  const [view, setView] = useState<'web' | 'email' | 'pdf' | 'canvas'>('web')
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'ALL' | Transaction['type']>('ALL')
   const [dateFrom, setDateFrom] = useState('')
@@ -41,6 +42,7 @@ function App() {
           <button className={view === 'web' ? 'nav-view active' : 'nav-view'} onClick={() => setView('web')} type="button">Statement</button>
           <button className={view === 'email' ? 'nav-view active' : 'nav-view'} onClick={() => setView('email')} type="button">Email</button>
           <button className={view === 'pdf' ? 'nav-view active' : 'nav-view'} onClick={() => setView('pdf')} type="button">PDF</button>
+          <button className={view === 'canvas' ? 'nav-view active' : 'nav-view'} onClick={() => setView('canvas')} type="button">Canvas</button>
           <a href="#insights">Insights</a>
           <a href="#settings">Settings</a>
         </nav>
@@ -51,7 +53,11 @@ function App() {
         </div>
       </header>
 
-      {view === 'pdf' ? (
+      {view === 'canvas' ? (
+        <main className="main-content canvas-page">
+          <CanvasSummary statement={statement} />
+        </main>
+      ) : view === 'pdf' ? (
         <main className="main-content pdf-page-container">
           <PdfStatement statement={statement} onClose={() => setView('web')} />
         </main>
