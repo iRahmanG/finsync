@@ -43,6 +43,7 @@ h2 { margin-bottom: 5px; font-size: 16px; }
 .muted { color: var(--muted); font-size: 13px; }
 .download-button { display: flex; gap: 9px; align-items: center; padding: 11px 16px; color: white; background: var(--green); border: 0; border-radius: 7px; font-size: 12px; font-weight: 600; box-shadow: 0 4px 10px #2f78601c; }
 .download-button:hover { background: var(--green-dark); }
+.secondary-button { padding: 11px 16px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: white; font-size: 12px; font-weight: 600; }
 .account-card { display: grid; grid-template-columns: 1.5fr 1fr 1.25fr; padding: 27px 31px; border: 1px solid #dfe9e2; border-radius: 10px; background: white; box-shadow: 0 5px 16px #2f78600a; }
 .account-info { display: flex; align-items: center; gap: 16px; }
 .bank-icon { display: grid; place-items: center; width: 43px; height: 43px; color: var(--green); background: var(--green-soft); border-radius: 10px; font-size: 22px; }
@@ -94,6 +95,31 @@ td { padding: 17px 22px; border-top: 1px solid var(--line); }
 .table-footer { padding: 13px 2px; color: var(--muted); font-size: 10px; }
 .table-footer span { margin: 0 5px; color: #c4cdc7; }
 .empty-state { padding: 35px; color: var(--muted); text-align: center; font-size: 13px; }
+.pdf-preview { max-width: 900px; margin: 0 auto; }
+.pdf-toolbar { display: flex; align-items: end; justify-content: space-between; margin-bottom: 28px; }
+.pdf-toolbar h1 { margin: 0; font-size: 27px; }
+.pdf-actions { display: flex; gap: 10px; }
+.pdf-document { display: grid; gap: 22px; }
+.pdf-page { position: relative; display: flex; flex-direction: column; min-height: 1122px; padding: 48px 52px 44px; background: white; box-shadow: 0 5px 20px #1b2b2412; }
+.pdf-header { display: flex; justify-content: space-between; align-items: start; padding-bottom: 20px; border-bottom: 2px solid var(--green); }
+.pdf-header .brand { font-size: 21px; }
+.pdf-header-meta { display: grid; gap: 5px; text-align: right; }
+.pdf-header-meta strong { color: var(--green-dark); font-size: 11px; letter-spacing: 1px; }
+.pdf-header-meta span { color: var(--muted); font-size: 11px; }
+.pdf-account { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.pdf-account div { display: grid; gap: 5px; }
+.pdf-account span { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .8px; }
+.pdf-account strong { font-size: 12px; }
+.pdf-table { margin-top: 24px; }
+.pdf-table th { padding: 10px 8px; border-bottom: 1px solid var(--line); background: transparent; }
+.pdf-table td { padding: 13px 8px; border-bottom: 1px solid var(--line); font-size: 10px; }
+.pdf-table td:first-child, .pdf-table td:nth-child(3) { color: var(--muted); font-family: var(--mono); font-size: 9px; }
+.pdf-table td strong { font-size: 11px; }
+.pdf-table .credit, .pdf-amount.credit { color: var(--green); }
+.pdf-table .debit, .pdf-amount.debit { color: var(--red); }
+.pdf-amount, .pdf-table td:last-child { text-align: right; font-family: var(--mono); }
+.pdf-closing { display: flex; justify-content: end; gap: 34px; margin-top: auto; padding: 18px 8px; border-top: 2px solid var(--ink); font-size: 12px; }
+.pdf-footer { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; }
 .email-page { display: grid; place-items: center; min-height: calc(100vh - 152px); }
 .email-renderer { width: min(100%, 560px); padding: 42px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 12px 30px #1b2b2410; }
 .email-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 48px; font-size: 19px; }
@@ -133,5 +159,19 @@ footer a { color: var(--green); text-decoration: none; }
   table { min-width: 650px; }
   .email-renderer { padding: 28px 20px; }
   .email-balances, .email-summary { grid-template-columns: 1fr; }
+  .pdf-toolbar { align-items: stretch; flex-direction: column; gap: 15px; }
+  .pdf-page { min-height: auto; padding: 28px 18px; }
+  .pdf-account { gap: 8px; }
+  .pdf-footer { gap: 10px; flex-wrap: wrap; }
+}
+
+@page { size: A4; margin: 0; }
+@media print {
+  body { background: white; }
+  .topbar, .app-shell > footer, .no-print { display: none !important; }
+  .main-content.pdf-page-container { max-width: none; padding: 0; }
+  .pdf-document { display: block; }
+  .pdf-page { min-height: 297mm; padding: 16mm 18mm 14mm; box-shadow: none; break-after: page; }
+  .pdf-page:last-child { break-after: auto; }
   footer { gap: 10px; flex-wrap: wrap; padding: 18px 20px; }
 }
