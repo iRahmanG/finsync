@@ -1,0 +1,75 @@
+import { describe, expect, it } from 'vitest'
+import {
+  calculateRunningBalances,
+  calculateTotals,
+  formatCurrency,
+  normalizeStatement,
+  validateStatement,
+} from './financial'
+import type { Statement } from './types'
+
+const validStatement: Statement = {
+  accountHolder: 'Aarav Mehta',
+  accountNumber: '4821',
+  accountType: 'Savings Account',
+  currency: 'INR',
+  statementPeriod: { start: '2024-06-01', end: '2024-06-30' },
+  openingBalancePaise: 5_000_000,
+  closingBalancePaise: 5_250_000,
+  transactions: [
+    { id: 'credit-1', date: '2024-06-10', description: 'Salary', reference: 'SAL-1', type: 'CREDIT', amountPaise: 350_000, balancePaise: 5_350_000 },
+    { id: 'debit-1', date: '2024-06-20', description: 'Rent', reference: 'RENT-1', type: 'DEBIT', amountPaise: 100_000, balancePaise: 5_250_000 },
+  ],
+}
+
+describe('financial calculations', () => {
+  it('calculates integer paise totals and running balances', () => {
+    expect(calculateTotals(validStatement.transactions)).toEqual({
+      totalCreditsPaise: 350_000,
+      totalDebitsPaise: 100_000,
+    })
+    expect(calculateRunningBalances(validStatement)).toEqual([
+      { transactionId: 'credit-1', balancePaise: 5_350_000 },
+      { transactionId: 'debit-1', balancePaise: 5_250_000 },
+    ])
+  })
+
+  it('normalizes text fields and transaction types', () => {
+    const result = normalizeStatement({
+      ...validStatement,
+      accountHolder: '  Aarav Mehta ',
+      transactions: [{ ...validStatement.transactions[0], type: 'CREDIT' }],
+    })
+    expect(result.accountHolder).toBe('Aarav Mehta')
+    expect(result.transactions[0].type).toBe('CREDIT')
+  })
+
+  it('formats paise as INR', () => {
+    expect(formatCurrency(5_000_000)).toBe('₹50,000.00')
+  })
+
+  it('accepts a consistent statement', () => {
+    expect(validateStatement(validStatement).valid).toBe(true)
+  })
+
+  it('reports all requested statement inconsistencies', () => {
+    const invalid: Statement = {
+      ...validStatement,
+      accountHolder: '',
+      closingBalancePaise: 1,
+      statementPeriod: { start: '2024-06-15', end: '2024-06-30' },
+      transactions: [
+        { ...validStatement.transactions[0], id: 'duplicate', balancePaise: 1 },
+        { ...validStatement.transactions[1], id: 'duplicate', date: '2024-07-01', amountPaise: 1.5 },
+      ],
+    }
+    const result = validateStatement(invalid)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((error) => error.includes('Closing balance mismatch'))).toBe(true)
+    expect(result.errors.some((error) => error.includes('Duplicate transaction ID'))).toBe(true)
+    expect(result.errors.some((error) => error.includes('Invalid amount'))).toBe(true)
+    expect(result.errors.some((error) => error.includes('outside the statement period'))).toBe(true)
+    expect(result.errors.some((error) => error.includes('Incorrect running balance'))).toBe(true)
+    expect(result.errors.some((error) => error.includes('accountHolder'))).toBe(true)
+  })
+})
