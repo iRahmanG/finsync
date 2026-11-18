@@ -15,15 +15,19 @@ function App() {
   const [view, setView] = useState<'web' | 'email'>('web')
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'ALL' | Transaction['type']>('ALL')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const filteredTransactions = useMemo(
     () =>
       statement.transactions.filter((transaction) => {
         const matchesFilter = filter === 'ALL' || transaction.type === filter
         const searchText = `${transaction.description} ${transaction.reference}`.toLowerCase()
-        return matchesFilter && searchText.includes(query.toLowerCase())
+        const matchesDateFrom = !dateFrom || transaction.date >= dateFrom
+        const matchesDateTo = !dateTo || transaction.date <= dateTo
+        return matchesFilter && searchText.includes(query.toLowerCase()) && matchesDateFrom && matchesDateTo
       }),
-    [filter, query],
+    [dateFrom, dateTo, filter, query],
   )
 
   return (
@@ -71,6 +75,14 @@ function App() {
               <label className="search-box">
                 <span aria-hidden="true">⌕</span>
                 <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search transactions" aria-label="Search transactions" />
+              </label>
+              <label className="date-filter">
+                <span>From</span>
+                <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} aria-label="Filter from date" />
+              </label>
+              <label className="date-filter">
+                <span>To</span>
+                <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} aria-label="Filter to date" />
               </label>
               <div className="filter-tabs" role="group" aria-label="Filter transactions">
                 {(['ALL', 'CREDIT', 'DEBIT'] as const).map((value) => (
