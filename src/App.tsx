@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import './App.css'
-import type { Statement, Transaction } from './types'
+import type { Transaction } from './types'
+import { statement } from './data/statement'
 import {
   AccountDetails,
   BalanceSummary,
@@ -8,27 +9,10 @@ import {
   StatementHeader,
   TransactionTable,
 } from './components'
-
-const statement: Statement = {
-  accountHolder: 'Aarav Mehta',
-  accountNumber: '•••• 4821',
-  accountType: 'Savings Account',
-  currency: 'INR',
-  statementPeriod: { start: '2024-06-01', end: '2024-06-30' },
-  openingBalancePaise: 18245000,
-  closingBalancePaise: 24787500,
-  transactions: [
-    { id: 'txn-01', date: '2024-06-28', description: 'Salary credit', reference: 'SAL/JUN/2024', type: 'CREDIT', amountPaise: 8500000 },
-    { id: 'txn-02', date: '2024-06-26', description: 'Rent payment', reference: 'UPI/RENT/0624', type: 'DEBIT', amountPaise: 2800000 },
-    { id: 'txn-03', date: '2024-06-24', description: 'Grocery shopping', reference: 'POS/DMART/9482', type: 'DEBIT', amountPaise: 328750 },
-    { id: 'txn-04', date: '2024-06-21', description: 'Freelance payment', reference: 'NEFT/FRL/2189', type: 'CREDIT', amountPaise: 1250000 },
-    { id: 'txn-05', date: '2024-06-18', description: 'Electricity bill', reference: 'BBPS/BESCOM/621', type: 'DEBIT', amountPaise: 164800 },
-    { id: 'txn-06', date: '2024-06-15', description: 'Restaurant & dining', reference: 'CARD/FOOD/7731', type: 'DEBIT', amountPaise: 245600 },
-    { id: 'txn-07', date: '2024-06-10', description: 'Cashback received', reference: 'CBK/AMZ/0601', type: 'CREDIT', amountPaise: 12500 },
-  ],
-}
+import { StatementEmail } from './renderers'
 
 function App() {
+  const [view, setView] = useState<'web' | 'email'>('web')
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'ALL' | Transaction['type']>('ALL')
 
@@ -50,7 +34,8 @@ function App() {
           <span>finsync</span>
         </a>
         <nav className="topnav" aria-label="Main navigation">
-          <a className="active" href="#statement">Statement</a>
+          <button className={view === 'web' ? 'nav-view active' : 'nav-view'} onClick={() => setView('web')} type="button">Statement</button>
+          <button className={view === 'email' ? 'nav-view active' : 'nav-view'} onClick={() => setView('email')} type="button">Email</button>
           <a href="#insights">Insights</a>
           <a href="#settings">Settings</a>
         </nav>
@@ -61,6 +46,11 @@ function App() {
         </div>
       </header>
 
+      {view === 'email' ? (
+        <main className="main-content email-page" id="email">
+          <StatementEmail statement={statement} />
+        </main>
+      ) : (
       <main className="main-content" id="statement">
         <StatementHeader statement={statement} onDownload={() => window.print()} />
         <AccountDetails statement={statement} />
@@ -98,6 +88,7 @@ function App() {
           />
         </section>
       </main>
+      )}
       <footer><span>© 2024 FinSync</span><span>Securely managing your money, together.</span><a href="#support">Need help?</a></footer>
     </div>
   )

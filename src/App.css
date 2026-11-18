@@ -29,8 +29,8 @@ button { cursor: pointer; }
 .brand { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: -.5px; text-decoration: none; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; color: white; background: var(--green); border-radius: 9px 9px 9px 2px; font-size: 17px; }
 .topnav { display: flex; gap: 34px; margin-left: 78px; height: 100%; }
-.topnav a { display: flex; align-items: center; color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; }
-.topnav a.active, .topnav a:hover { color: var(--green-dark); border-bottom-color: var(--green); }
+.topnav a, .nav-view { display: flex; align-items: center; color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; border: 0; border-bottom: 2px solid transparent; background: transparent; }
+.topnav a.active, .topnav a:hover, .nav-view.active, .nav-view:hover { color: var(--green-dark); border-bottom-color: var(--green); }
 .profile { display: flex; align-items: center; gap: 10px; margin-left: auto; font-size: 13px; font-weight: 600; }
 .avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: var(--green-dark); background: #d7eee4; font-size: 11px; }
 .icon-button { border: 0; color: var(--muted); background: transparent; font-size: 17px; }
@@ -92,6 +92,23 @@ td { padding: 17px 22px; border-top: 1px solid var(--line); }
 .table-footer { padding: 13px 2px; color: var(--muted); font-size: 10px; }
 .table-footer span { margin: 0 5px; color: #c4cdc7; }
 .empty-state { padding: 35px; color: var(--muted); text-align: center; font-size: 13px; }
+.email-page { display: grid; place-items: center; min-height: calc(100vh - 152px); }
+.email-renderer { width: min(100%, 560px); padding: 42px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 12px 30px #1b2b2410; }
+.email-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 48px; font-size: 19px; }
+.email-renderer h1 { margin-bottom: 12px; font-size: 30px; }
+.email-copy { margin-bottom: 26px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.email-account { display: grid; gap: 5px; padding: 16px 18px; border-radius: var(--radius-md); background: var(--soft); }
+.email-account span, .email-balances span, .email-summary span { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+.email-account strong { font-family: var(--mono); font-size: 17px; }
+.email-account small { color: var(--muted); font-size: 11px; }
+.email-balances, .email-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 14px; }
+.email-balances > div, .email-summary > div { display: grid; gap: 7px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.email-balances strong { font-size: 17px; }
+.email-summary strong { font-size: 15px; }
+.email-summary-credit { color: var(--green); background: var(--green-soft); }
+.email-summary-debit { color: var(--red); background: var(--debit-soft); }
+.email-cta { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; padding: 13px 16px; color: white; background: var(--green); border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; text-decoration: none; }
+.email-footnote { margin: 25px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; text-align: center; }
 footer { display: flex; justify-content: space-between; padding: 18px 6.5%; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
 footer a { color: var(--green); text-decoration: none; }
 @media (max-width: 760px) {
@@ -110,5 +127,7 @@ footer a { color: var(--green); text-decoration: none; }
   .filter-tabs { justify-content: center; }
   .table-wrap { overflow-x: auto; }
   table { min-width: 650px; }
+  .email-renderer { padding: 28px 20px; }
+  .email-balances, .email-summary { grid-template-columns: 1fr; }
   footer { gap: 10px; flex-wrap: wrap; padding: 18px 20px; }
 }
