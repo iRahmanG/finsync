@@ -1,18 +1,13 @@
 import type { Statement } from '../types'
-import { maskAccountNumber, validateStatement } from '../financial'
+import { formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
 
 interface AccountDetailsProps {
   statement: Statement
 }
 
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(
-    new Date(`${date}T00:00:00`),
-  )
-
 export function AccountDetails({ statement }: AccountDetailsProps) {
-  const validation = validateStatement(statement)
-  const status = validation.valid ? 'Balanced' : 'Needs review'
+  const reconciliation = getReconciliation(statement)
+  const status = reconciliation.valid ? 'Balanced' : 'Needs review'
   return (
     <section className="account-card" aria-label="Account details">
       <div className="account-info">
@@ -31,7 +26,7 @@ export function AccountDetails({ statement }: AccountDetailsProps) {
       </div>
       <div className="period-block">
         <p className="card-label">STATEMENT PERIOD</p>
-        <strong>{formatDate(statement.statementPeriod.start)} — {formatDate(statement.statementPeriod.end)}</strong>
+        <strong>{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</strong>
         <span className="status-pill">{status}</span>
       </div>
     </section>

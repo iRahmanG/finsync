@@ -19,6 +19,13 @@ function App() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const reconciliation = getReconciliation(statement)
+  const profileInitials = statement.accountHolder
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('')
+  const statementYear = statement.statementPeriod.end.slice(0, 4)
 
   const filteredTransactions = useMemo(
     () =>
@@ -48,8 +55,8 @@ function App() {
           <a href="#settings">Settings</a>
         </nav>
         <div className="profile">
-          <span className="avatar">AM</span>
-          <span className="profile-name">Aarav Mehta</span>
+          <span className="avatar">{profileInitials}</span>
+          <span className="profile-name">{statement.accountHolder}</span>
           <button className="icon-button" aria-label="Open profile menu">⌄</button>
         </div>
       </header>
@@ -121,7 +128,7 @@ function App() {
         </section>
       </main>
       )}
-      <footer><span>© 2024 FinSync</span><span>Synthetic statement template · Confidential</span><a href="#support">Need help?</a></footer>
+      <footer><span>© {statementYear} FinSync</span><span>Synthetic statement template · Confidential</span><a href="#support">Need help?</a></footer>
     </div>
   )
 }

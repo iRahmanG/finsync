@@ -98,6 +98,9 @@ export function normalizeStatement(input: StatementInput): Statement {
 export function calculateTotals(transactions: Transaction[]): StatementTotals {
   return transactions.reduce<StatementTotals>(
     (totals, transaction) => {
+      if (transaction.type !== 'CREDIT' && transaction.type !== 'DEBIT') {
+        throw new Error(`Invalid transaction type: ${String(transaction.type)}`)
+      }
       if (transaction.type === 'CREDIT') {
         totals.totalCreditsPaise += transaction.amountPaise
       } else {
@@ -128,7 +131,11 @@ export function validateStatement(statement: Statement): ValidationResult {
   const transactions = Array.isArray(statement.transactions) ? statement.transactions : []
   const periodStart = statement.statementPeriod?.start ?? ''
   const periodEnd = statement.statementPeriod?.end ?? ''
-  const totals = calculateTotals(transactions)
+  const totals = calculateTotals(
+    transactions.filter((transaction) =>
+      transaction.type === 'CREDIT' || transaction.type === 'DEBIT',
+    ),
+  )
   const runningBalances = calculateRunningBalances({
     ...statement,
     transactions,
