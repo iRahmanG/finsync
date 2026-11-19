@@ -23,12 +23,15 @@
 * { box-sizing: border-box; }
 body { background: #fbfcfb; color: var(--ink); font-family: 'DM Sans', sans-serif; }
 body { overflow-x: hidden; }
+.theme-preset { position: fixed; z-index: 20; top: 14px; right: 170px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; }
+.theme-preset select { padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--ink); background: white; }
 button, input { font: inherit; }
 button { cursor: pointer; }
 .app-shell { min-height: 100vh; }
 .topbar { height: 76px; padding: 0 6.5%; display: flex; align-items: center; border-bottom: 1px solid var(--line); background: white; }
 .brand { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: -.5px; text-decoration: none; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; color: white; background: var(--green); border-radius: 9px 9px 9px 2px; font-size: 17px; }
+.brand-logo { width: 32px; height: 32px; object-fit: contain; }
 .topnav { display: flex; gap: 34px; margin-left: 78px; height: 100%; }
 .topnav a, .nav-view { display: flex; align-items: center; color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; border: 0; border-bottom: 2px solid transparent; background: transparent; }
 .topnav a.active, .topnav a:hover, .nav-view.active, .nav-view:hover { color: var(--green-dark); border-bottom-color: var(--green); }

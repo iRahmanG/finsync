@@ -1,23 +1,21 @@
 import type { Statement } from '../types'
+import type { FinSyncLocale } from '../public-api'
+import { formatStatementPeriod } from '../financial'
 
 interface StatementHeaderProps {
   statement: Statement
   onDownload?: () => void
+  locale?: FinSyncLocale
 }
 
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(
-    new Date(`${date}T00:00:00`),
-  )
-
-export function StatementHeader({ statement, onDownload }: StatementHeaderProps) {
+export function StatementHeader({ statement, onDownload, locale = 'en-IN' }: StatementHeaderProps) {
   return (
     <div className="page-heading">
       <div>
         <p className="eyebrow">PERSONAL FINANCE</p>
         <h1>Account statement</h1>
         <p className="muted">
-          {formatDate(statement.statementPeriod.start)} — {formatDate(statement.statementPeriod.end)}
+          {formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end, locale)}
         </p>
       </div>
       {onDownload && (

@@ -1,24 +1,23 @@
 import { calculateRunningBalances, formatCurrency } from '../financial'
 import type { Transaction } from '../types'
 import { CreditDebitIndicator } from './CreditDebitIndicator'
+import type { FinSyncLocale } from '../public-api'
+import { formatDate } from '../financial'
 
 interface TransactionTableProps {
   transactions: Transaction[]
   totalTransactions: number
   openingBalancePaise: number
   allTransactions: Transaction[]
+  locale?: FinSyncLocale
 }
-
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(
-    new Date(`${date}T00:00:00`),
-  )
 
 export function TransactionTable({
   transactions,
   totalTransactions,
   openingBalancePaise,
   allTransactions,
+  locale = 'en-IN',
 }: TransactionTableProps) {
   const runningBalances = calculateRunningBalances({
     openingBalancePaise,
@@ -45,7 +44,7 @@ export function TransactionTable({
           <tbody>
             {sortedTransactions.map((transaction) => (
               <tr key={transaction.id}>
-                <td className="date-cell">{formatDate(transaction.date)}</td>
+                <td className="date-cell">{formatDate(transaction.date, locale)}</td>
                 <td className="description-cell"><strong>{transaction.description}</strong><span>{transaction.type === 'CREDIT' ? 'Money received' : 'Payment made'}</span></td>
                 <td className="reference-cell">{transaction.reference}</td>
                 <td className="type-cell"><CreditDebitIndicator type={transaction.type} /></td>

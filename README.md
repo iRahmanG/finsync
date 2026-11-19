@@ -1,6 +1,8 @@
 # FinSync
 
-FinSync is a reusable React and TypeScript financial statement template built with `@hyper-elements/react@0.5.0`.
+FinSync is a polished React and TypeScript financial statement template built with `@hyper-elements/react@0.5.0`.
+
+It demonstrates one statement dataset across four practical developer-facing formats: an interactive web statement, an email preview, a print-ready PDF, and a shareable canvas summary.
 
 It provides:
 
@@ -93,6 +95,43 @@ All money calculations use integer paise. Invalid types, impossible dates, unsaf
 ```
 
 Supported public theme keys are primary, text, muted, surface, subtle surface, border, border radius, body font, and mono font.
+
+Supported locales are `en-IN` and `en-US`. The underlying statement model and calculations remain INR-only; arbitrary currency conversion is not implemented.
+
+## Branding
+
+```tsx
+<FinSyncStatement
+  statement={statement}
+  config={{
+    brandName: 'Northstar',
+    logoUrl: '/northstar.svg',
+    logoAlt: 'Northstar',
+  }}
+/>
+```
+
+Logo assets should be local and reliable for exports. Missing or invalid logos fall back to the text/initial brand mark.
+
+## Screenshots
+
+Add genuine application screenshots under [docs/screenshots](docs/screenshots).
+
+The README should link:
+
+- Desktop web statement.
+- Mobile web statement.
+- Email preview.
+- PDF preview.
+- Canvas preview.
+- One custom-themed statement.
+
+![Desktop web statement](docs/screenshots/web-desktop.png)
+![Mobile web statement](docs/screenshots/web-mobile.png)
+![Email preview](docs/screenshots/email-preview.png)
+![PDF preview](docs/screenshots/pdf-preview.png)
+![Canvas preview](docs/screenshots/canvas-preview.png)
+![Custom-themed statement](docs/screenshots/custom-theme.png)
 
 ## Privacy
 

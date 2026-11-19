@@ -1,11 +1,13 @@
 import type { Statement } from '../types'
 import { formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
+import type { FinSyncLocale } from '../public-api'
 
 interface AccountDetailsProps {
   statement: Statement
+  locale?: FinSyncLocale
 }
 
-export function AccountDetails({ statement }: AccountDetailsProps) {
+export function AccountDetails({ statement, locale = 'en-IN' }: AccountDetailsProps) {
   const reconciliation = getReconciliation(statement)
   const status = reconciliation.valid ? 'Balanced' : 'Needs review'
   return (
@@ -26,7 +28,7 @@ export function AccountDetails({ statement }: AccountDetailsProps) {
       </div>
       <div className="period-block">
         <p className="card-label">STATEMENT PERIOD</p>
-        <strong>{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</strong>
+        <strong>{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end, locale)}</strong>
         <span className="status-pill">{status}</span>
       </div>
     </section>

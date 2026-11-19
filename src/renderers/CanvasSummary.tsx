@@ -4,14 +4,18 @@ import { Canvas, Column, Divider, Heading, Row, Text } from '@hyper-elements/rea
 import { finsyncHyperTheme, token } from '../theme'
 import { exportPng } from '../export'
 import { useState } from 'react'
+import type { FinSyncLocale } from '../public-api'
 import * as React from 'react'
 void React
 
 interface CanvasSummaryProps {
   statement: Statement
+  locale?: FinSyncLocale
+  logoUrl?: string
+  logoAlt?: string
 }
 
-export function CanvasSummary({ statement }: CanvasSummaryProps) {
+export function CanvasSummary({ statement, locale = 'en-IN' }: CanvasSummaryProps) {
   const [exportState, setExportState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [exportMessage, setExportMessage] = useState('')
 
@@ -31,7 +35,7 @@ export function CanvasSummary({ statement }: CanvasSummaryProps) {
   return (
     <div className="canvas-renderer">
       <div className="canvas-heading">
-        <div><p className="eyebrow">FINANCIAL SNAPSHOT</p><h1>Statement at a glance</h1><p className="muted">{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</p></div>
+        <div><p className="eyebrow">FINANCIAL SNAPSHOT</p><h1>Statement at a glance</h1><p className="muted">{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end, locale)}</p></div>
         <button className="download-button" type="button" onClick={handleExport} disabled={exportState === 'loading'}>
           {exportState === 'loading' ? 'Preparing PNG…' : '↓ Download PNG'}
         </button>
@@ -70,7 +74,7 @@ function CanvasPreview({ statement }: CanvasSummaryProps) {
       </div>
       <div className="canvas-chart">
         <div className="category-list">
-          <h2>Spending breakdown</h2>
+          <h2>Estimated spending breakdown</h2>
           {categories.length === 0 ? (
             <p className="muted">No debit transactions in this period.</p>
           ) : categories.map(([category, amount], index) => (
@@ -89,7 +93,7 @@ function CanvasPreview({ statement }: CanvasSummaryProps) {
   )
 }
 
-export function CanvasDocument({ statement }: CanvasSummaryProps) {
+export function CanvasDocument({ statement, locale = 'en-IN' }: CanvasSummaryProps) {
   const totals = calculateTotals(statement.transactions)
   const categoryTotals = new Map<string, number>()
   statement.transactions
@@ -105,6 +109,7 @@ export function CanvasDocument({ statement }: CanvasSummaryProps) {
   const statementPeriod = formatStatementPeriod(
     statement.statementPeriod.start,
     statement.statementPeriod.end,
+    locale,
   )
 
   return (
@@ -128,7 +133,7 @@ export function CanvasDocument({ statement }: CanvasSummaryProps) {
           <Divider style={{ borderTop: { width: 1, style: 'solid', color: '#E4E9E6' } }} />
           <Row style={{ gap: 24 }}>
             <Column style={{ flex: 1, gap: 12, padding: 18, backgroundColor: token('colors.surface'), borderRadius: 9 }}>
-              <Heading level={2} style={{ fontSize: 17 }}>Spending breakdown</Heading>
+              <Heading level={2} style={{ fontSize: 17 }}>Estimated spending breakdown</Heading>
               {categories.length === 0 ? (
                 <Text style={{ color: token('colors.muted'), fontSize: 12 }}>No debit transactions in this period.</Text>
               ) : categories.map(([category, amount]) => (

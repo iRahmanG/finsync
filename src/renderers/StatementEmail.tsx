@@ -1,16 +1,20 @@
 import { calculateTotals, formatCurrency, formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
 import type { Statement } from '../types'
+import type { FinSyncLocale } from '../public-api'
 import { Button, Column, Divider, Email, Heading, Row, Text } from '@hyper-elements/react'
 import { finsyncHyperTheme, token } from '../theme'
 
 interface StatementEmailProps {
   statement: Statement
   statementUrl?: string
+  locale?: FinSyncLocale
+  logoUrl?: string
+  logoAlt?: string
 }
 
 const themeLiteralLine = '#E4E9E6'
 
-export function StatementEmailDocument({ statement, statementUrl = '#statement' }: StatementEmailProps) {
+export function StatementEmailDocument({ statement, statementUrl = '#statement', locale = 'en-IN' }: StatementEmailProps) {
   const totals = calculateTotals(statement.transactions)
   const maskedAccount = maskAccountNumber(statement.accountNumber)
   const reconciliation = getReconciliation(statement)
@@ -18,6 +22,7 @@ export function StatementEmailDocument({ statement, statementUrl = '#statement' 
   const statementPeriod = formatStatementPeriod(
     statement.statementPeriod.start,
     statement.statementPeriod.end,
+    locale,
   )
 
   return (
@@ -74,7 +79,7 @@ export function StatementEmailDocument({ statement, statementUrl = '#statement' 
   )
 }
 
-export function StatementEmail({ statement, statementUrl = '#statement' }: StatementEmailProps) {
+export function StatementEmail({ statement, statementUrl = '#statement', locale = 'en-IN', logoUrl, logoAlt }: StatementEmailProps) {
   const totals = calculateTotals(statement.transactions)
   const maskedAccount = maskAccountNumber(statement.accountNumber)
   const reconciliation = getReconciliation(statement)
@@ -82,11 +87,12 @@ export function StatementEmail({ statement, statementUrl = '#statement' }: State
   const statementPeriod = formatStatementPeriod(
     statement.statementPeriod.start,
     statement.statementPeriod.end,
+    locale,
   )
 
   return (
     <article className="email-renderer">
-      <div className="email-brand"><span className="brand-mark">F</span><strong>finsync</strong></div>
+      <div className="email-brand">{logoUrl ? <img src={logoUrl} alt={logoAlt || 'FinSync'} onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span className="brand-mark">F</span>}<strong>finsync</strong></div>
       <p className="eyebrow">MONTHLY STATEMENT</p>
       <h1>Your account statement is ready</h1>
       <p className="email-copy">Hi {statement.accountHolder.split(' ')[0]}, your {statement.accountType.toLowerCase()} statement is ready to review.</p>

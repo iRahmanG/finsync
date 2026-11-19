@@ -115,6 +115,28 @@ describe('cross-format renderer regressions', () => {
           textColor: '#101828',
         })
         expect(customTheme).toBeDefined()
+
+        const warmTheme = createFinSyncTheme({
+          primaryColor: '#7C3AED',
+          surfaceColor: '#FFFCF7',
+          borderRadius: 14,
+          spacingScale: 1.25,
+        })
+        expect(warmTheme).toBeDefined()
+      })
+
+      it('accepts optional logo and locale configuration', () => {
+        const element = React.createElement(FinSyncStatement, {
+          statement: alternateStatement,
+          config: {
+            locale: 'en-US',
+            brandName: 'Northstar',
+            logoUrl: '/logo.svg',
+            logoAlt: 'Northstar logo',
+          },
+        })
+        expect(element.props.config?.locale).toBe('en-US')
+        expect(element.props.config?.logoUrl).toBe('/logo.svg')
       })
     })
   }

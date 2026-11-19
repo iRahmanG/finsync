@@ -15,12 +15,16 @@ import {
 import { finsyncHyperTheme, token } from '../theme'
 import { exportPdf } from '../export'
 import { useState } from 'react'
+import type { FinSyncLocale } from '../public-api'
 import * as React from 'react'
 void React
 
 interface PdfStatementProps {
   statement: Statement
   onClose?: () => void
+  locale?: FinSyncLocale
+  logoUrl?: string
+  logoAlt?: string
 }
 
 const ROWS_PER_PAGE = 5
@@ -132,7 +136,7 @@ function PdfPreview({ statement }: { statement: Statement }) {
   )
 }
 
-export function PdfDocument({ statement }: { statement: Statement }) {
+export function PdfDocument({ statement, locale = 'en-IN' }: { statement: Statement; locale?: FinSyncLocale }) {
   const balances = calculateRunningBalances(statement)
   const chronologicalTransactions = [...statement.transactions].sort((first, second) =>
     first.date.localeCompare(second.date),
@@ -144,6 +148,7 @@ export function PdfDocument({ statement }: { statement: Statement }) {
   const statementPeriod = formatStatementPeriod(
     statement.statementPeriod.start,
     statement.statementPeriod.end,
+    locale,
   )
   const documentPages = pages.length === 0 ? [[]] : pages
 

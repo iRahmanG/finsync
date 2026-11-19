@@ -1,4 +1,5 @@
 import type { Statement, Transaction } from './types'
+import type { FinSyncLocale } from './public-api'
 
 export type StatementInput = Partial<Omit<Statement, 'statementPeriod' | 'transactions'>> & {
   statementPeriod?: Partial<Statement['statementPeriod']>
@@ -259,11 +260,11 @@ export function validateStatement(statement: Statement): ValidationResult {
   return { valid: errors.length === 0, errors, totals, runningBalances }
 }
 
-export function formatCurrency(amountPaise: number): string {
+export function formatCurrency(amountPaise: number, locale: FinSyncLocale = 'en-IN'): string {
   if (typeof amountPaise !== 'number' || !Number.isSafeInteger(amountPaise)) {
     throw new Error('Currency amount must be an integer number of paise')
   }
-  return new Intl.NumberFormat('en-IN', {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'INR',
     minimumFractionDigits: 2,
@@ -271,11 +272,11 @@ export function formatCurrency(amountPaise: number): string {
   }).format(amountPaise / 100)
 }
 
-export function formatExportCurrency(amountPaise: number): string {
+export function formatExportCurrency(amountPaise: number, locale: FinSyncLocale = 'en-IN'): string {
   if (typeof amountPaise !== 'number' || !Number.isSafeInteger(amountPaise)) {
     throw new Error('Currency amount must be an integer number of paise')
   }
-  const rupees = (amountPaise / 100).toLocaleString('en-IN', {
+  const rupees = (amountPaise / 100).toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
@@ -302,9 +303,9 @@ export function categoryFor(description: string): string {
   return 'Uncategorized'
 }
 
-export function formatStatementPeriod(start: string, end: string): string {
+export function formatStatementPeriod(start: string, end: string, locale: FinSyncLocale = 'en-IN'): string {
   const formatDate = (date: string) =>
-    new Intl.DateTimeFormat('en-IN', {
+    new Intl.DateTimeFormat(locale, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -312,8 +313,8 @@ export function formatStatementPeriod(start: string, end: string): string {
   return `${formatDate(start)} — ${formatDate(end)}`
 }
 
-export function formatDate(date: string): string {
-  return new Intl.DateTimeFormat('en-IN', {
+export function formatDate(date: string, locale: FinSyncLocale = 'en-IN'): string {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

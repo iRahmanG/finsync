@@ -13,10 +13,14 @@ export interface FinSyncThemeOverrides {
   spacingScale?: number
 }
 
+export type FinSyncLocale = 'en-IN' | 'en-US'
+
 export interface FinSyncPresentationConfig {
   brandName?: string
-  locale?: 'en-IN'
+  locale?: FinSyncLocale
   currency?: 'INR'
+  logoUrl?: string
+  logoAlt?: string
   optionalSections?: {
     accountDetails?: boolean
     financialSummary?: boolean

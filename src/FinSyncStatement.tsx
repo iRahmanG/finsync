@@ -24,6 +24,9 @@ export function FinSyncStatement({
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const validation = validateStatement(statement)
+  if (config?.currency && config.currency !== 'INR') {
+    onInvalidStatement?.(['Currency must be INR'])
+  }
 
   if (!validation.valid) {
     onInvalidStatement?.(validation.errors)
@@ -31,11 +34,14 @@ export function FinSyncStatement({
 
   const reconciliation = getReconciliation(statement)
   const brandName = config?.brandName?.trim() || 'FinSync'
+  const locale = config?.locale ?? 'en-IN'
   const statementForDisplay = {
     ...statement,
     accountNumber: maskAccountNumber(statement.accountNumber),
   }
   const themeOverrides = config?.theme
+  const spacingScale = themeOverrides?.spacingScale ?? 1
+  const radius = themeOverrides?.borderRadius ?? 9
   const appStyle = {
     '--green': themeOverrides?.primaryColor,
     '--ink': themeOverrides?.textColor,
@@ -43,6 +49,13 @@ export function FinSyncStatement({
     '--surface': themeOverrides?.surfaceColor,
     '--soft': themeOverrides?.subtleSurfaceColor,
     '--line': themeOverrides?.borderColor,
+    '--space-xs': `${4 * spacingScale}px`,
+    '--space-sm': `${8 * spacingScale}px`,
+    '--space-md': `${16 * spacingScale}px`,
+    '--space-lg': `${24 * spacingScale}px`,
+    '--space-xl': `${32 * spacingScale}px`,
+    '--radius-sm': `${Math.max(2, radius - 3)}px`,
+    '--radius-md': `${radius}px`,
   } as CSSProperties
 
   const profileInitials = statement.accountHolder
@@ -74,7 +87,16 @@ export function FinSyncStatement({
     <div className="app-shell" style={appStyle}>
       <header className="topbar">
         <a className="brand" href="/" aria-label={`${brandName} home`}>
-          <span className="brand-mark">{brandName[0]?.toUpperCase()}</span>
+          {config?.logoUrl ? (
+            <img
+              className="brand-logo"
+              src={config.logoUrl}
+              alt={config.logoAlt || `${brandName} logo`}
+              onError={(event) => { event.currentTarget.style.display = 'none' }}
+            />
+          ) : (
+            <span className="brand-mark">{brandName[0]?.toUpperCase()}</span>
+          )}
           <span>{brandName.toLowerCase()}</span>
         </a>
         <nav className="topnav" aria-label="Main navigation">
@@ -96,30 +118,31 @@ export function FinSyncStatement({
       </header>
 
       {view === 'canvas' ? (
-        <main className="main-content canvas-page"><CanvasSummary statement={statementForDisplay} /></main>
+        <main className="main-content canvas-page"><CanvasSummary statement={statementForDisplay} locale={locale} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} /></main>
       ) : view === 'pdf' ? (
-        <main className="main-content pdf-page-container"><PdfStatement statement={statementForDisplay} onClose={() => setView('web')} /></main>
+        <main className="main-content pdf-page-container"><PdfStatement statement={statementForDisplay} locale={locale} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} onClose={() => setView('web')} /></main>
       ) : view === 'email' ? (
-        <main className="main-content email-page"><StatementEmail statement={statementForDisplay} /></main>
+        <main className="main-content email-page"><StatementEmail statement={statementForDisplay} locale={locale} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} /></main>
       ) : (
         <main className="main-content" id="statement">
-          <StatementHeader statement={statementForDisplay} onDownload={() => window.print()} />
+          <StatementHeader statement={statementForDisplay} locale={locale} onDownload={() => window.print()} />
           {!validation.valid && (
             <aside className="validation-banner" role="alert">
               <strong>Statement needs review</strong>
               <span>
-                Calculated closing balance is {formatCurrency(reconciliation.expectedClosingBalancePaise)};
+                Calculated closing balance is {formatCurrency(reconciliation.expectedClosingBalancePaise, locale)};
                 {' '}supplied balance is {formatCurrency(statement.closingBalancePaise)}
                 {' '}({reconciliation.differencePaise > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(reconciliation.differencePaise))}).
               </span>
             </aside>
           )}
-          {optionalSections?.accountDetails !== false && <AccountDetails statement={statementForDisplay} />}
+          {optionalSections?.accountDetails !== false && <AccountDetails statement={statementForDisplay} locale={locale} />}
           {optionalSections?.financialSummary !== false && (
             <MonthlyFinancialSummary
               transactions={statement.transactions}
               openingBalancePaise={statement.openingBalancePaise}
               closingBalancePaise={statement.closingBalancePaise}
+              locale={locale}
             />
           )}
           {optionalSections?.transactions !== false && (
@@ -146,6 +169,7 @@ export function FinSyncStatement({
                 totalTransactions={statement.transactions.length}
                 openingBalancePaise={statement.openingBalancePaise}
                 allTransactions={statement.transactions}
+                locale={locale}
               />
             </section>
           )}

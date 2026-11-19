@@ -3,6 +3,7 @@ import {
   calculateRunningBalances,
   calculateTotals,
   formatCurrency,
+  formatExportCurrency,
   formatDate,
   formatStatementPeriod,
   getReconciliation,
@@ -78,6 +79,16 @@ describe('financial calculations', () => {
   it('formats statement periods dynamically', () => {
     expect(formatStatementPeriod('2024-06-01', '2024-06-30')).toBe('01 Jun 2024 — 30 Jun 2024')
     expect(formatDate('2024-06-28')).toBe('28 Jun 2024')
+    expect(formatStatementPeriod('2024-06-01', '2024-06-30', 'en-US'))
+      .toBe('Jun 01, 2024 — Jun 30, 2024')
+    expect(formatDate('2024-06-28', 'en-US')).toBe('Jun 28, 2024')
+  })
+
+  it('formats INR consistently for supported locales', () => {
+    expect(formatCurrency(5_000_000, 'en-IN')).toBe('₹50,000.00')
+    expect(formatCurrency(5_000_000, 'en-US')).toBe('₹50,000.00')
+    expect(formatExportCurrency(5_000_000, 'en-IN')).toBe('INR 50,000.00')
+    expect(formatExportCurrency(5_000_000, 'en-US')).toBe('INR 50,000.00')
   })
 
   it('reports the reconciliation difference', () => {
