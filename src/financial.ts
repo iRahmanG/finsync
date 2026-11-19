@@ -186,8 +186,8 @@ export function validateStatement(statement: Statement): ValidationResult {
 }
 
 export function formatCurrency(amountPaise: number): string {
-  if (!isIntegerPaise(amountPaise)) {
-    throw new Error('Currency amount must be a non-negative integer number of paise')
+  if (typeof amountPaise !== 'number' || !Number.isSafeInteger(amountPaise)) {
+    throw new Error('Currency amount must be an integer number of paise')
   }
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
