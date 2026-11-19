@@ -32,9 +32,80 @@ export function PdfStatement({ statement, onClose }: PdfStatementProps) {
         </div>
       </div>
       <div className="pdf-document">
-        <PdfDocument statement={statement} />
+        <PdfPreview statement={statement} />
       </div>
     </div>
+  )
+}
+
+function PdfPreview({ statement }: { statement: Statement }) {
+  const balances = calculateRunningBalances(statement)
+  const chronologicalTransactions = [...statement.transactions].sort((first, second) =>
+    first.date.localeCompare(second.date),
+  )
+  const pages = chronologicalTransactions.length === 0
+    ? [[]]
+    : Array.from(
+        { length: Math.ceil(chronologicalTransactions.length / ROWS_PER_PAGE) },
+        (_, pageIndex) => chronologicalTransactions.slice(pageIndex * ROWS_PER_PAGE, (pageIndex + 1) * ROWS_PER_PAGE),
+      )
+
+  return (
+    <>
+      {pages.map((page, pageIndex) => (
+        <article className="pdf-page" key={pageIndex}>
+          <header className="pdf-header">
+            <div className="brand"><span className="brand-mark">F</span><span>finsync</span></div>
+            <div className="pdf-header-meta">
+              <strong>ACCOUNT STATEMENT</strong>
+              <span>{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</span>
+            </div>
+          </header>
+          {pageIndex === 0 && (
+            <div className="pdf-account">
+              <div><span>ACCOUNT HOLDER</span><strong>{statement.accountHolder}</strong></div>
+              <div><span>ACCOUNT</span><strong>{maskAccountNumber(statement.accountNumber)}</strong></div>
+              <div><span>TYPE</span><strong>{statement.accountType}</strong></div>
+            </div>
+          )}
+          {page.length === 0 ? (
+            <p className="empty-state">No transactions were recorded for this statement period.</p>
+          ) : (
+            <table className="pdf-table">
+              <thead><tr><th>Date</th><th>Description</th><th>Reference</th><th>Type</th><th>Amount</th><th>Running balance</th></tr></thead>
+              <tbody>
+                {page.map((transaction) => {
+                  const runningBalance = balances.find(({ transactionId }) => transactionId === transaction.id)
+                  return (
+                    <tr key={transaction.id}>
+                      <td>{formatDate(transaction.date)}</td>
+                      <td><strong>{transaction.description}</strong></td>
+                      <td>{transaction.reference}</td>
+                      <td className={transaction.type.toLowerCase()}>{transaction.type}</td>
+                      <td className={`pdf-amount ${transaction.type.toLowerCase()}`}>{transaction.type === 'CREDIT' ? '+' : '−'} {formatCurrency(transaction.amountPaise)}</td>
+                      <td>{formatCurrency(runningBalance?.balancePaise ?? statement.openingBalancePaise)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+          {pageIndex === pages.length - 1 && (
+            <div>
+              <div className="pdf-closing"><span>Closing balance</span><strong>{formatCurrency(statement.closingBalancePaise)}</strong></div>
+              {!getReconciliation(statement).valid && (
+                <p className="pdf-reconciliation">Statement needs review: calculated closing balance differs from the supplied closing balance.</p>
+              )}
+            </div>
+          )}
+          <footer className="pdf-footer">
+            <span>FinSync • Confidential</span>
+            <span>Statement period: {formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</span>
+            <span>Page {pageIndex + 1} of {pages.length}</span>
+          </footer>
+        </article>
+      ))}
+    </>
   )
 }
 

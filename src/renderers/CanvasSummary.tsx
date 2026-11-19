@@ -24,8 +24,53 @@ export function CanvasSummary({ statement }: CanvasSummaryProps) {
         <button className="download-button" type="button" onClick={() => window.print()}>↓ Save summary</button>
       </div>
       <div className="canvas-artboard">
-        <CanvasDocument statement={statement} />
+        <CanvasPreview statement={statement} />
       </div>
+    </div>
+  )
+}
+
+function CanvasPreview({ statement }: CanvasSummaryProps) {
+  const totals = calculateTotals(statement.transactions)
+  const categoryTotals = new Map<string, number>()
+  statement.transactions
+    .filter(({ type }) => type === 'DEBIT')
+    .forEach((transaction) => {
+      const category = categoryFor(transaction.description)
+      categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + transaction.amountPaise)
+    })
+  const categories = [...categoryTotals.entries()].sort(([, first], [, second]) => second - first)
+  const reconciliation = getReconciliation(statement)
+  const netCashFlowPaise = totals.totalCreditsPaise - totals.totalDebitsPaise
+
+  return (
+    <div className="canvas-preview-card">
+      <div className="canvas-artboard-header">
+        <div className="brand"><span className="brand-mark">F</span><span>finsync</span></div>
+        <span>{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</span>
+      </div>
+      <div className="canvas-metrics">
+        <div className="canvas-metric income"><span>Income</span><strong>{formatCurrency(totals.totalCreditsPaise)}</strong></div>
+        <div className="canvas-metric expense"><span>Expenses</span><strong>{formatCurrency(totals.totalDebitsPaise)}</strong></div>
+        <div className="canvas-metric balance"><span>Net cash flow</span><strong>{formatCurrency(netCashFlowPaise)}</strong></div>
+      </div>
+      <div className="canvas-chart">
+        <div className="category-list">
+          <h2>Spending breakdown</h2>
+          {categories.length === 0 ? (
+            <p className="muted">No debit transactions in this period.</p>
+          ) : categories.map(([category, amount], index) => (
+            <div className="category-row" key={category}>
+              <div><span className={`category-dot category-${index}`} /><strong>{category}</strong><span>{Math.round((amount / totals.totalDebitsPaise) * 100)}%</span></div>
+              <div className="category-bar"><i style={{ width: `${Math.round((amount / totals.totalDebitsPaise) * 100)}%` }} /></div>
+              <small>{formatCurrency(amount)}</small>
+            </div>
+          ))}
+        </div>
+      </div>
+      {!reconciliation.valid && (
+        <div className="canvas-insight"><span aria-hidden="true">!</span><p><strong>Statement needs review.</strong> Closing balance differs from the calculated balance.</p></div>
+      )}
     </div>
   )
 }

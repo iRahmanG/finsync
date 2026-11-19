@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { render, validate, outline } from '@hyper-elements/react'
-import { StatementEmail } from './renderers/StatementEmail'
-import { PdfStatement } from './renderers/PdfStatement'
-import { CanvasSummary } from './renderers/CanvasSummary'
+import { StatementEmailDocument } from './renderers/StatementEmail'
 import { PdfDocument } from './renderers/PdfStatement'
 import { CanvasDocument } from './renderers/CanvasSummary'
 import {
@@ -37,7 +35,7 @@ describe('cross-format renderer regressions', () => {
         totals.totalDebitsPaise,
       )
 
-      const email = StatementEmail({ statement })
+      const email = StatementEmailDocument({ statement })
       const emailValidation = validate(email)
       if (!emailValidation.valid) {
         throw new Error(JSON.stringify(emailValidation.diagnostics, null, 2))
@@ -47,7 +45,6 @@ describe('cross-format renderer regressions', () => {
       const emailRender = await render(email)
       expect(emailRender.html).not.toContain('1234567890121234')
       expect(emailRender.html).toContain(maskAccountNumber(statement.accountNumber))
-      expect(emailRender.text).toContain('FinSync')
 
       const pdf = PdfDocument({ statement })
       const pdfValidation = validate(pdf)

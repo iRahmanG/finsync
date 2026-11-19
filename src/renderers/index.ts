@@ -1,4 +1,6 @@
 export { CanvasSummary } from './CanvasSummary'
 export { CanvasDocument } from './CanvasSummary'
 export { PdfStatement } from './PdfStatement'
+export { PdfDocument } from './PdfStatement'
 export { StatementEmail } from './StatementEmail'
+export { StatementEmailDocument } from './StatementEmail'
