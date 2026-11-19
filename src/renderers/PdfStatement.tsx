@@ -1,4 +1,4 @@
-import { calculateRunningBalances, formatCurrency } from '../financial'
+import { calculateRunningBalances, calculateTotals, formatCurrency, maskAccountNumber, validateStatement } from '../financial'
 import type { Statement, Transaction } from '../types'
 
 interface PdfStatementProps {
@@ -15,9 +15,12 @@ const formatDate = (date: string) =>
 
 export function PdfStatement({ statement, onClose }: PdfStatementProps) {
   const balances = calculateRunningBalances(statement)
+  const chronologicalTransactions = [...statement.transactions].sort((first, second) =>
+    first.date.localeCompare(second.date),
+  )
   const pages = Array.from(
-    { length: Math.ceil(statement.transactions.length / ROWS_PER_PAGE) },
-    (_, pageIndex) => statement.transactions.slice(pageIndex * ROWS_PER_PAGE, (pageIndex + 1) * ROWS_PER_PAGE),
+    { length: Math.ceil(chronologicalTransactions.length / ROWS_PER_PAGE) },
+    (_, pageIndex) => chronologicalTransactions.slice(pageIndex * ROWS_PER_PAGE, (pageIndex + 1) * ROWS_PER_PAGE),
   )
 
   return (
@@ -67,7 +70,7 @@ function PdfPage({
       {pageIndex === 0 && (
         <div className="pdf-account">
           <div><span>ACCOUNT HOLDER</span><strong>{statement.accountHolder}</strong></div>
-          <div><span>ACCOUNT</span><strong>{statement.accountNumber}</strong></div>
+          <div><span>ACCOUNT</span><strong>{maskAccountNumber(statement.accountNumber)}</strong></div>
           <div><span>TYPE</span><strong>{statement.accountType}</strong></div>
         </div>
       )}
@@ -75,7 +78,7 @@ function PdfPage({
         <thead><tr><th>Date</th><th>Description</th><th>Reference</th><th>Type</th><th>Amount</th><th>Running balance</th></tr></thead>
         <tbody>
           {page.map((transaction) => {
-            const transactionIndex = statement.transactions.findIndex(({ id }) => id === transaction.id)
+            const runningBalance = balances.find(({ transactionId }) => transactionId === transaction.id)
             return (
               <tr key={transaction.id}>
                 <td>{formatDate(transaction.date)}</td>
@@ -83,18 +86,38 @@ function PdfPage({
                 <td>{transaction.reference}</td>
                 <td className={transaction.type.toLowerCase()}>{transaction.type}</td>
                 <td className={`pdf-amount ${transaction.type.toLowerCase()}`}>{transaction.type === 'CREDIT' ? '+' : '−'} {formatCurrency(transaction.amountPaise)}</td>
-                <td>{formatCurrency(balances[transactionIndex].balancePaise)}</td>
+                <td>{formatCurrency(runningBalance?.balancePaise ?? statement.openingBalancePaise)}</td>
               </tr>
             )
           })}
         </tbody>
       </table>
       {pageIndex === pageCount - 1 && (
-        <div className="pdf-closing">
-          <span>Closing balance</span><strong>{formatCurrency(statement.closingBalancePaise)}</strong>
-        </div>
+        <PdfClosingSummary statement={statement} />
       )}
       <footer className="pdf-footer"><span>FinSync • Confidential</span><span>Statement period: {formatDate(statement.statementPeriod.start)} — {formatDate(statement.statementPeriod.end)}</span><span>Page {pageIndex + 1} of {pageCount}</span></footer>
     </article>
+  )
+}
+
+function PdfClosingSummary({ statement }: { statement: Statement }) {
+  const totals = calculateTotals(statement.transactions)
+  const expectedClosingBalance =
+    statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise
+  const validation = validateStatement(statement)
+  const mismatch = statement.closingBalancePaise - expectedClosingBalance
+
+  return (
+    <div>
+      <div className="pdf-closing">
+        <span>Closing balance</span><strong>{formatCurrency(statement.closingBalancePaise)}</strong>
+      </div>
+      {!validation.valid && (
+        <p className="pdf-reconciliation">
+          Statement needs review: calculated closing balance {formatCurrency(expectedClosingBalance)};
+          {' '}{mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
+        </p>
+      )}
+    </div>
   )
 }

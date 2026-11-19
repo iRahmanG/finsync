@@ -1,4 +1,4 @@
-import { calculateTotals, formatCurrency } from '../financial'
+import { calculateTotals, formatCurrency, maskAccountNumber, validateStatement } from '../financial'
 import type { Statement } from '../types'
 
 interface StatementEmailProps {
@@ -13,7 +13,11 @@ const formatDate = (date: string) =>
 
 export function StatementEmail({ statement, statementUrl = '#statement' }: StatementEmailProps) {
   const totals = calculateTotals(statement.transactions)
-  const maskedAccount = statement.accountNumber.replace(/\d(?=\d{4})/g, '•')
+  const maskedAccount = maskAccountNumber(statement.accountNumber)
+  const validation = validateStatement(statement)
+  const expectedClosingBalance =
+    statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise
+  const mismatch = statement.closingBalancePaise - expectedClosingBalance
 
   return (
     <article className="email-renderer">
@@ -37,6 +41,12 @@ export function StatementEmail({ statement, statementUrl = '#statement' }: State
         <div className="email-summary-credit"><span>Total credits</span><strong>{formatCurrency(totals.totalCreditsPaise)}</strong></div>
         <div className="email-summary-debit"><span>Total debits</span><strong>{formatCurrency(totals.totalDebitsPaise)}</strong></div>
       </section>
+      {!validation.valid && (
+        <p className="email-reconciliation">
+          Statement needs review: the calculated closing balance is {formatCurrency(expectedClosingBalance)},
+          {' '}{mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
+        </p>
+      )}
       <a className="email-cta" href={statementUrl}>View full statement <span aria-hidden="true">→</span></a>
       <p className="email-footnote">This notification contains a summary only. Sign in to FinSync to view all transactions securely.</p>
     </article>

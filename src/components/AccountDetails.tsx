@@ -1,6 +1,5 @@
-import type { ReactNode } from 'react'
 import type { Statement } from '../types'
-import { formatCurrency } from '../financial'
+import { maskAccountNumber, validateStatement } from '../financial'
 
 interface AccountDetailsProps {
   statement: Statement
@@ -12,6 +11,8 @@ const formatDate = (date: string) =>
   )
 
 export function AccountDetails({ statement }: AccountDetailsProps) {
+  const validation = validateStatement(statement)
+  const status = validation.valid ? 'Balanced' : 'Needs review'
   return (
     <section className="account-card" aria-label="Account details">
       <div className="account-info">
@@ -19,34 +20,20 @@ export function AccountDetails({ statement }: AccountDetailsProps) {
         <div>
           <p className="card-label">PRIMARY ACCOUNT</p>
           <h2>{statement.accountType}</h2>
-          <p className="account-number">{statement.accountNumber}</p>
+          <p className="account-number">{maskAccountNumber(statement.accountNumber)}</p>
           <p className="account-holder">{statement.accountHolder}</p>
         </div>
       </div>
-      <BalanceDetail label="CLOSING BALANCE" amountPaise={statement.closingBalancePaise}>
-        <span className="balance-change">↑ 35.9% this month</span>
-      </BalanceDetail>
+      <div className="balance-block">
+        <p className="card-label">ACCOUNT HOLDER</p>
+        <strong className="account-holder-name">{statement.accountHolder}</strong>
+        <span className="account-holder-detail">Synthetic demonstration account</span>
+      </div>
       <div className="period-block">
         <p className="card-label">STATEMENT PERIOD</p>
         <strong>{formatDate(statement.statementPeriod.start)} — {formatDate(statement.statementPeriod.end)}</strong>
-        <span className="status-pill">Up to date</span>
+        <span className="status-pill">{status}</span>
       </div>
     </section>
-  )
-}
-
-interface BalanceDetailProps {
-  label: string
-  amountPaise: number
-  children?: ReactNode
-}
-
-function BalanceDetail({ label, amountPaise, children }: BalanceDetailProps) {
-  return (
-    <div className="balance-block">
-      <p className="card-label">{label}</p>
-      <strong>{formatCurrency(amountPaise)}</strong>
-      {children}
-    </div>
   )
 }

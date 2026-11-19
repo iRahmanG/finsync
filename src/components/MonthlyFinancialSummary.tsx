@@ -4,18 +4,26 @@ import type { Transaction } from '../types'
 interface MonthlyFinancialSummaryProps {
   transactions: Transaction[]
   openingBalancePaise: number
+  closingBalancePaise: number
 }
 
-export function MonthlyFinancialSummary({ transactions, openingBalancePaise }: MonthlyFinancialSummaryProps) {
+export function MonthlyFinancialSummary({
+  transactions,
+  openingBalancePaise,
+  closingBalancePaise,
+}: MonthlyFinancialSummaryProps) {
   const totals = calculateTotals(transactions)
   const creditCount = transactions.filter(({ type }) => type === 'CREDIT').length
   const debitCount = transactions.filter(({ type }) => type === 'DEBIT').length
+  const netCashFlowPaise = totals.totalCreditsPaise - totals.totalDebitsPaise
 
   return (
     <section className="summary-grid" aria-label="Monthly financial summary">
+      <SummaryCard kind="balance" label="Opening balance" amountPaise={openingBalancePaise} detail="Start of period" />
+      <SummaryCard kind="credit" label="Closing balance" amountPaise={closingBalancePaise} detail="End of period" />
       <SummaryCard kind="credit" label="Total credits" amountPaise={totals.totalCreditsPaise} detail={`${creditCount} transactions`} />
       <SummaryCard kind="debit" label="Total debits" amountPaise={totals.totalDebitsPaise} detail={`${debitCount} transactions`} />
-      <SummaryCard kind="balance" label="Opening balance" amountPaise={openingBalancePaise} detail="Start of statement period" />
+      <p className="net-cash-flow"><span>Net cash flow</span><strong>{formatCurrency(netCashFlowPaise)}</strong></p>
     </section>
   )
 }

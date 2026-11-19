@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import './App.css'
 import type { Transaction } from './types'
 import { statement } from './data/statement'
+import { calculateTotals, formatCurrency, validateStatement } from './financial'
 import {
   AccountDetails,
-  BalanceSummary,
   MonthlyFinancialSummary,
   StatementHeader,
   TransactionTable,
@@ -18,6 +18,11 @@ function App() {
   const [filter, setFilter] = useState<'ALL' | Transaction['type']>('ALL')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const validation = validateStatement(statement)
+  const totals = calculateTotals(statement.transactions)
+  const expectedClosingBalance =
+    statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise
+  const reconciliationDifference = statement.closingBalancePaise - expectedClosingBalance
 
   const filteredTransactions = useMemo(
     () =>
@@ -68,15 +73,21 @@ function App() {
       ) : (
       <main className="main-content" id="statement">
         <StatementHeader statement={statement} onDownload={() => window.print()} />
+        {!validation.valid && (
+          <aside className="validation-banner" role="alert">
+            <strong>Statement needs review</strong>
+            <span>
+              Calculated closing balance is {formatCurrency(expectedClosingBalance)};
+              {' '}supplied balance is {formatCurrency(statement.closingBalancePaise)}
+              {' '}({reconciliationDifference > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(reconciliationDifference))}).
+            </span>
+          </aside>
+        )}
         <AccountDetails statement={statement} />
-        <BalanceSummary
-          openingBalancePaise={statement.openingBalancePaise}
-          closingBalancePaise={statement.closingBalancePaise}
-          periodStart={statement.statementPeriod.start}
-        />
         <MonthlyFinancialSummary
           transactions={statement.transactions}
           openingBalancePaise={statement.openingBalancePaise}
+          closingBalancePaise={statement.closingBalancePaise}
         />
 
         <section className="transactions-section">
@@ -108,11 +119,13 @@ function App() {
           <TransactionTable
             transactions={filteredTransactions}
             totalTransactions={statement.transactions.length}
+            openingBalancePaise={statement.openingBalancePaise}
+            allTransactions={statement.transactions}
           />
         </section>
       </main>
       )}
-      <footer><span>© 2024 FinSync</span><span>Securely managing your money, together.</span><a href="#support">Need help?</a></footer>
+      <footer><span>© 2024 FinSync</span><span>Synthetic statement template · Confidential</span><a href="#support">Need help?</a></footer>
     </div>
   )
 }
