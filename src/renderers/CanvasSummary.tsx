@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { calculateTotals, formatCurrency, formatStatementPeriod, getReconciliation } from '../financial'
 import type { Statement } from '../types'
 import { Canvas, Column, Divider, Heading, Row, Text } from '@hyper-elements/react'
@@ -18,17 +17,29 @@ const categoryFor = (description: string) => {
 }
 
 export function CanvasSummary({ statement }: CanvasSummaryProps) {
+  return (
+    <div className="canvas-renderer">
+      <div className="canvas-heading">
+        <div><p className="eyebrow">FINANCIAL SNAPSHOT</p><h1>Statement at a glance</h1><p className="muted">{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</p></div>
+        <button className="download-button" type="button" onClick={() => window.print()}>↓ Save summary</button>
+      </div>
+      <div className="canvas-artboard">
+        <CanvasDocument statement={statement} />
+      </div>
+    </div>
+  )
+}
+
+export function CanvasDocument({ statement }: CanvasSummaryProps) {
   const totals = calculateTotals(statement.transactions)
-  const categories = useMemo(() => {
-    const categoryTotals = new Map<string, number>()
-    statement.transactions
-      .filter(({ type }) => type === 'DEBIT')
-      .forEach((transaction) => {
-        const category = categoryFor(transaction.description)
-        categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + transaction.amountPaise)
-      })
-    return [...categoryTotals.entries()].sort(([, first], [, second]) => second - first)
-  }, [statement.transactions])
+  const categoryTotals = new Map<string, number>()
+  statement.transactions
+    .filter(({ type }) => type === 'DEBIT')
+    .forEach((transaction) => {
+      const category = categoryFor(transaction.description)
+      categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + transaction.amountPaise)
+    })
+  const categories = [...categoryTotals.entries()].sort(([, first], [, second]) => second - first)
   const savingsPaise = totals.totalCreditsPaise - totals.totalDebitsPaise
   const reconciliation = getReconciliation(statement)
   const mismatch = reconciliation.differencePaise
@@ -38,13 +49,7 @@ export function CanvasSummary({ statement }: CanvasSummaryProps) {
   )
 
   return (
-    <div className="canvas-renderer">
-      <div className="canvas-heading">
-        <div><p className="eyebrow">FINANCIAL SNAPSHOT</p><h1>Statement at a glance</h1><p className="muted">{statementPeriod}</p></div>
-        <button className="download-button" type="button" onClick={() => window.print()}>↓ Save summary</button>
-      </div>
-      <div className="canvas-artboard">
-        <Canvas
+    <Canvas
           theme={finsyncHyperTheme}
           width={1200}
           height={630}
@@ -60,7 +65,7 @@ export function CanvasSummary({ statement }: CanvasSummaryProps) {
             <Metric label="Expenses" value={formatCurrency(totals.totalDebitsPaise)} />
             <Metric label="Net cash flow" value={formatCurrency(savingsPaise)} />
           </Row>
-          <Divider style={{ borderTop: `1px solid ${token('colors.line')}` }} />
+          <Divider style={{ borderTop: { width: 1, style: 'solid', color: '#E4E9E6' } }} />
           <Row style={{ gap: 24 }}>
             <Column style={{ flex: 1, gap: 12, padding: 18, backgroundColor: token('colors.surface'), borderRadius: 9 }}>
               <Heading level={2} style={{ fontSize: 17 }}>Spending breakdown</Heading>
@@ -75,21 +80,19 @@ export function CanvasSummary({ statement }: CanvasSummaryProps) {
               <Text style={{ color: token('colors.muted'), fontSize: 12 }}>Net cash flow for the statement period</Text>
               <Text style={{ color: token('colors.primary'), fontSize: 22, fontWeight: 700 }}>{formatCurrency(savingsPaise)}</Text>
               {!reconciliation.valid && (
-                <Text style={{ padding: 10, border: `1px solid ${token('colors.warning')}`, borderRadius: 7, backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 11, lineHeight: 1.4 }}>
+                <Text style={{ padding: 10, border: { width: 1, style: 'solid', color: '#9A6700' }, borderRadius: 7, backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 11, lineHeight: 1.4 }}>
                   Statement needs review: {mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
                 </Text>
               )}
             </Column>
           </Row>
-        </Canvas>
-      </div>
-    </div>
+    </Canvas>
   )
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <Column style={{ flex: 1, gap: 8, padding: 18, backgroundColor: token('colors.surface'), border: `1px solid ${token('colors.line')}`, borderRadius: 9 }}>
+    <Column style={{ flex: 1, gap: 8, padding: 18, backgroundColor: token('colors.surface'), border: { width: 1, style: 'solid', color: '#E4E9E6' }, borderRadius: 9 }}>
       <Text style={{ fontSize: 11, color: token('colors.muted') }}>{label}</Text>
       <Text style={{ fontSize: 22, fontWeight: 700 }}>{value}</Text>
     </Column>

@@ -22,6 +22,23 @@ interface PdfStatementProps {
 const ROWS_PER_PAGE = 5
 
 export function PdfStatement({ statement, onClose }: PdfStatementProps) {
+  return (
+    <div className="pdf-preview">
+      <div className="pdf-toolbar no-print">
+        <div><p className="eyebrow">PDF STATEMENT</p><h1>Print-ready A4 statement</h1></div>
+        <div className="pdf-actions">
+          {onClose && <button className="secondary-button" type="button" onClick={onClose}>Back to web</button>}
+          <button className="download-button" type="button" onClick={() => window.print()}>↓ Save as PDF</button>
+        </div>
+      </div>
+      <div className="pdf-document">
+        <PdfDocument statement={statement} />
+      </div>
+    </div>
+  )
+}
+
+export function PdfDocument({ statement }: { statement: Statement }) {
   const balances = calculateRunningBalances(statement)
   const chronologicalTransactions = [...statement.transactions].sort((first, second) =>
     first.date.localeCompare(second.date),
@@ -37,23 +54,14 @@ export function PdfStatement({ statement, onClose }: PdfStatementProps) {
   const documentPages = pages.length === 0 ? [[]] : pages
 
   return (
-    <div className="pdf-preview">
-      <div className="pdf-toolbar no-print">
-        <div><p className="eyebrow">PDF STATEMENT</p><h1>Print-ready A4 statement</h1></div>
-        <div className="pdf-actions">
-          {onClose && <button className="secondary-button" type="button" onClick={onClose}>Back to web</button>}
-          <button className="download-button" type="button" onClick={() => window.print()}>↓ Save as PDF</button>
-        </div>
-      </div>
-      <div className="pdf-document">
-        <Document
+    <Document
           theme={finsyncHyperTheme}
           size="A4"
           margin={{ top: 48, right: 48, bottom: 48, left: 48 }}
           title="FinSync account statement"
           style={{ gap: 24, color: token('colors.ink'), fontFamily: 'DM Sans, Arial, sans-serif', backgroundColor: token('colors.surface') }}
         >
-          <PageHeader style={{ padding: { bottom: 16 }, border: { bottom: `1px solid ${token('colors.line')}` } }}>
+          <PageHeader style={{ padding: { bottom: 16 }, border: { bottom: { width: 1, style: 'solid', color: '#E4E9E6' } } }}>
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>finsync</Text>
               <Text style={{ fontSize: 10, color: token('colors.muted') }}>
@@ -79,7 +87,7 @@ export function PdfStatement({ statement, onClose }: PdfStatementProps) {
                   </Column>
                 </Row>
               )}
-              <Table style={{ width: '100%', fontSize: 9, border: `1px solid ${token('colors.line')}`, cellPadding: [10, 6] }}>
+              <Table style={{ width: '100%', fontSize: 9, border: { width: 1, style: 'solid', color: '#E4E9E6' }, cellPadding: [10, 6] }}>
                 <TableRow header>
                   <TableCell>Date</TableCell>
                   <TableCell>Description</TableCell>
@@ -105,23 +113,21 @@ export function PdfStatement({ statement, onClose }: PdfStatementProps) {
                 })}
               </Table>
               {page.length === 0 && (
-                <Text style={{ padding: 18, border: `1px solid ${token('colors.line')}`, borderRadius: 8, backgroundColor: token('colors.surfaceSubtle'), color: token('colors.muted'), fontSize: 11, textAlign: 'center' }}>
+                <Text style={{ padding: 18, border: { width: 1, style: 'solid', color: '#E4E9E6' }, borderRadius: 8, backgroundColor: token('colors.surfaceSubtle'), color: token('colors.muted'), fontSize: 11, textAlign: 'center' }}>
                   No transactions were recorded for this statement period.
                 </Text>
               )}
               {pageIndex === documentPages.length - 1 && <PdfClosingSummary statement={statement} />}
             </Document.Page>
           ))}
-          <PageFooter style={{ border: { top: `1px solid ${token('colors.line')}` }, padding: { top: 10 } }}>
+          <PageFooter style={{ border: { top: { width: 1, style: 'solid', color: '#E4E9E6' } }, padding: { top: 10 } }}>
             <Row style={{ justifyContent: 'space-between' }}>
               <Text style={{ fontSize: 9, color: token('colors.muted') }}>FinSync • Confidential</Text>
               <Text style={{ fontSize: 9, color: token('colors.muted') }}>Synthetic demonstration</Text>
               <Text style={{ fontSize: 9, color: token('colors.muted') }}>Page <PageNumber /></Text>
             </Row>
           </PageFooter>
-        </Document>
-      </div>
-    </div>
+    </Document>
   )
 }
 
@@ -131,12 +137,12 @@ function PdfClosingSummary({ statement }: { statement: Statement }) {
 
   return (
     <Column style={{ gap: 8 }}>
-      <Row style={{ justifyContent: 'space-between', padding: { top: 12 }, border: { top: `2px solid ${token('colors.ink')}` } }}>
+      <Row style={{ justifyContent: 'space-between', padding: { top: 12 }, border: { top: { width: 2, style: 'solid', color: '#182A38' } } }}>
         <Text style={{ fontSize: 12 }}>Closing balance</Text>
         <Text style={{ fontSize: 12, fontWeight: 700 }}>{formatCurrency(statement.closingBalancePaise)}</Text>
       </Row>
       {!reconciliation.valid && (
-        <Text style={{ padding: 8, border: `1px solid ${token('colors.warning')}`, backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 9, lineHeight: 1.4 }}>
+        <Text style={{ padding: 8, border: { width: 1, style: 'solid', color: '#9A6700' }, backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 9, lineHeight: 1.4 }}>
           Statement needs review: calculated closing balance {formatCurrency(reconciliation.expectedClosingBalancePaise)};
           {' '}{mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
         </Text>

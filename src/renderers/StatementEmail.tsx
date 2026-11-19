@@ -8,6 +8,8 @@ interface StatementEmailProps {
   statementUrl?: string
 }
 
+const themeLiteralLine = '#E4E9E6'
+
 export function StatementEmail({ statement, statementUrl = '#statement' }: StatementEmailProps) {
   const totals = calculateTotals(statement.transactions)
   const maskedAccount = maskAccountNumber(statement.accountNumber)
@@ -19,8 +21,7 @@ export function StatementEmail({ statement, statementUrl = '#statement' }: State
   )
 
   return (
-    <article className="email-renderer">
-      <Email
+    <Email
         theme={finsyncHyperTheme}
         width={560}
         previewText="Your FinSync account statement is ready"
@@ -31,17 +32,17 @@ export function StatementEmail({ statement, statementUrl = '#statement' }: State
         <Text style={{ color: token('colors.muted'), fontSize: 14, lineHeight: 1.6 }}>
           Hi {statement.accountHolder.split(' ')[0]}, your {statement.accountType.toLowerCase()} statement is ready to review.
         </Text>
-        <Column style={{ gap: 5, padding: 16, backgroundColor: token('colors.surfaceSubtle'), border: `1px solid ${token('colors.line')}`, borderRadius: 8 }}>
+        <Column style={{ gap: 5, padding: 16, backgroundColor: token('colors.surfaceSubtle'), border: { width: 1, style: 'solid', color: themeLiteralLine }, borderRadius: 8 }}>
           <Text style={{ fontSize: 10, fontWeight: 700, color: token('colors.muted') }}>ACCOUNT</Text>
           <Text style={{ fontFamily: 'DM Mono, monospace', fontSize: 17 }}>{maskedAccount}</Text>
           <Text style={{ fontSize: 11, color: token('colors.muted') }}>{statementPeriod}</Text>
         </Column>
         <Row style={{ gap: 12 }}>
-          <Column style={{ gap: 6, padding: 16, border: `1px solid ${token('colors.line')}`, borderRadius: 8 }}>
+          <Column style={{ gap: 6, padding: 16, border: { width: 1, style: 'solid', color: themeLiteralLine }, borderRadius: 8 }}>
             <Text style={{ fontSize: 10, color: token('colors.muted') }}>Opening balance</Text>
             <Text style={{ fontSize: 17, fontWeight: 700 }}>{formatCurrency(statement.openingBalancePaise)}</Text>
           </Column>
-          <Column style={{ gap: 6, padding: 16, border: `1px solid ${token('colors.line')}`, borderRadius: 8 }}>
+          <Column style={{ gap: 6, padding: 16, border: { width: 1, style: 'solid', color: themeLiteralLine }, borderRadius: 8 }}>
             <Text style={{ fontSize: 10, color: token('colors.muted') }}>Closing balance</Text>
             <Text style={{ fontSize: 17, fontWeight: 700 }}>{formatCurrency(statement.closingBalancePaise)}</Text>
           </Column>
@@ -57,21 +58,20 @@ export function StatementEmail({ statement, statementUrl = '#statement' }: State
           </Column>
         </Row>
         {statement.transactions.length === 0 && (
-          <Text style={{ padding: 12, border: `1px solid ${token('colors.line')}`, borderRadius: 7, backgroundColor: token('colors.surfaceSubtle'), color: token('colors.muted'), fontSize: 11, textAlign: 'center' }}>
+          <Text style={{ padding: 12, border: { width: 1, style: 'solid', color: themeLiteralLine }, borderRadius: 7, backgroundColor: token('colors.surfaceSubtle'), color: token('colors.muted'), fontSize: 11, textAlign: 'center' }}>
             No transactions were recorded for this statement period.
           </Text>
         )}
         {!reconciliation.valid && (
-          <Text style={{ padding: 12, border: `1px solid ${token('colors.warning')}`, borderRadius: 7, color: token('colors.warning'), backgroundColor: token('colors.warningSoft'), fontSize: 11, lineHeight: 1.5 }}>
+          <Text style={{ padding: 12, border: { width: 1, style: 'solid', color: '#9A6700' }, borderRadius: 7, color: token('colors.warning'), backgroundColor: token('colors.warningSoft'), fontSize: 11, lineHeight: 1.5 }}>
             Statement needs review: the calculated closing balance is {formatCurrency(reconciliation.expectedClosingBalancePaise)}, {mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
           </Text>
         )}
-        <Divider style={{ borderTop: `1px solid ${token('colors.line')}` }} />
+        <Divider style={{ borderTop: { width: 1, style: 'solid', color: themeLiteralLine } }} />
         <Button href={statementUrl} style={{ backgroundColor: token('colors.primary'), borderRadius: 6, padding: [12, 16] }}>View full statement</Button>
         <Text style={{ color: token('colors.muted'), fontSize: 11, lineHeight: 1.5, textAlign: 'center' }}>
           This notification contains a summary only. Sign in to FinSync to view all transactions securely.
         </Text>
-      </Email>
-    </article>
+    </Email>
   )
 }
