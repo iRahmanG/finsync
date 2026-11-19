@@ -3,6 +3,7 @@ import {
   calculateRunningBalances,
   calculateTotals,
   formatCurrency,
+  maskAccountNumber,
   normalizeStatement,
   validateStatement,
 } from './financial'
@@ -34,6 +35,20 @@ describe('financial calculations', () => {
     ])
   })
 
+  it('calculates running balances in chronological order', () => {
+    const outOfOrder: Statement = {
+      ...validStatement,
+      transactions: [
+        validStatement.transactions[1],
+        validStatement.transactions[0],
+      ],
+    }
+    expect(calculateRunningBalances(outOfOrder)).toEqual([
+      { transactionId: 'credit-1', balancePaise: 5_350_000 },
+      { transactionId: 'debit-1', balancePaise: 5_250_000 },
+    ])
+  })
+
   it('normalizes text fields and transaction types', () => {
     const result = normalizeStatement({
       ...validStatement,
@@ -42,6 +57,18 @@ describe('financial calculations', () => {
     })
     expect(result.accountHolder).toBe('Aarav Mehta')
     expect(result.transactions[0].type).toBe('CREDIT')
+  })
+
+  it('rejects unknown transaction types', () => {
+    expect(() => normalizeStatement({
+      ...validStatement,
+      transactions: [{ ...validStatement.transactions[0], type: 'TRANSFER' as never }],
+    })).toThrow('Invalid transaction type')
+  })
+
+  it('masks account numbers', () => {
+    expect(maskAccountNumber('4821')).toBe('•••• 4821')
+    expect(maskAccountNumber('1234567890124821')).toBe('•••• 4821')
   })
 
   it('formats paise as INR', () => {

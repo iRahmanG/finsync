@@ -37,6 +37,9 @@ const normalizeDate = (value: string): string => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(date.getTime())) {
     throw new Error(`Invalid date: ${value}`)
   }
+  if (date.toISOString().slice(0, 10) !== value) {
+    throw new Error(`Invalid date: ${value}`)
+  }
   return value
 }
 
@@ -71,17 +74,22 @@ export function normalizeStatement(input: StatementInput): Statement {
     },
     openingBalancePaise: normalizeAmount(input.openingBalancePaise, 'openingBalancePaise'),
     closingBalancePaise: normalizeAmount(input.closingBalancePaise, 'closingBalancePaise'),
-    transactions: transactions.map((transaction) => ({
-      id: transaction.id?.trim() ?? '',
-      date: normalizeDate(transaction.date ?? ''),
-      description: transaction.description?.trim() ?? '',
-      reference: transaction.reference?.trim() ?? '',
-      type: transaction.type === 'DEBIT' ? 'DEBIT' : 'CREDIT',
-      amountPaise: normalizeAmount(transaction.amountPaise, 'amountPaise'),
-      ...(transaction.balancePaise === undefined
-        ? {}
-        : { balancePaise: normalizeAmount(transaction.balancePaise, 'balancePaise') }),
-    })),
+    transactions: transactions.map((transaction) => {
+      if (transaction.type !== 'CREDIT' && transaction.type !== 'DEBIT') {
+        throw new Error(`Invalid transaction type: ${String(transaction.type)}`)
+      }
+      return {
+        id: transaction.id?.trim() ?? '',
+        date: normalizeDate(transaction.date ?? ''),
+        description: transaction.description?.trim() ?? '',
+        reference: transaction.reference?.trim() ?? '',
+        type: transaction.type,
+        amountPaise: normalizeAmount(transaction.amountPaise, 'amountPaise'),
+        ...(transaction.balancePaise === undefined
+          ? {}
+          : { balancePaise: normalizeAmount(transaction.balancePaise, 'balancePaise') }),
+      }
+    }),
   }
 
   return statement
@@ -103,7 +111,13 @@ export function calculateTotals(transactions: Transaction[]): StatementTotals {
 
 export function calculateRunningBalances(statement: Statement): RunningBalance[] {
   let balancePaise = statement.openingBalancePaise
-  return statement.transactions.map((transaction) => {
+  const chronologicalTransactions = statement.transactions
+    .map((transaction, index) => ({ transaction, index }))
+    .sort((first, second) =>
+      first.transaction.date.localeCompare(second.transaction.date) ||
+      first.index - second.index,
+    )
+  return chronologicalTransactions.map(({ transaction }) => {
     balancePaise += transaction.type === 'CREDIT' ? transaction.amountPaise : -transaction.amountPaise
     return { transactionId: transaction.id, balancePaise }
   })
@@ -159,8 +173,11 @@ export function validateStatement(statement: Statement): ValidationResult {
     )
   }
 
+  const balancesByTransactionId = new Map(
+    runningBalances.map((runningBalance) => [runningBalance.transactionId, runningBalance.balancePaise]),
+  )
   transactions.forEach((transaction, index) => {
-    if (transaction.balancePaise !== undefined && transaction.balancePaise !== runningBalances[index].balancePaise) {
+    if (transaction.balancePaise !== undefined && transaction.balancePaise !== balancesByTransactionId.get(transaction.id)) {
       errors.push(`Incorrect running balance for transaction ${transaction.id || index + 1}`)
     }
   })
@@ -178,4 +195,15 @@ export function formatCurrency(amountPaise: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amountPaise / 100)
+}
+
+export function maskAccountNumber(accountNumber: string): string {
+  const trimmed = accountNumber.trim()
+  if (!trimmed) return ''
+
+  const digits = trimmed.match(/\d/g)
+  if (!digits) return '••••'
+
+  const lastFour = digits.slice(-4).join('')
+  return `•••• ${lastFour}`
 }
