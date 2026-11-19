@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react'
-import { calculateTotals, formatCurrency } from '../financial'
+import { useMemo } from 'react'
+import { calculateTotals, formatCurrency, validateStatement } from '../financial'
 import type { Statement } from '../types'
+import { Canvas, Column, Divider, Heading, Row, Text } from '@hyper-elements/react'
+import { finsyncHyperTheme, token } from '../theme'
 
 interface CanvasSummaryProps {
   statement: Statement
@@ -16,7 +18,6 @@ const categoryFor = (description: string) => {
 }
 
 export function CanvasSummary({ statement }: CanvasSummaryProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const totals = calculateTotals(statement.transactions)
   const categories = useMemo(() => {
     const categoryTotals = new Map<string, number>()
@@ -29,48 +30,10 @@ export function CanvasSummary({ statement }: CanvasSummaryProps) {
     return [...categoryTotals.entries()].sort(([, first], [, second]) => second - first)
   }, [statement.transactions])
   const savingsPaise = totals.totalCreditsPaise - totals.totalDebitsPaise
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ratio = window.devicePixelRatio || 1
-    const width = canvas.clientWidth
-    const height = canvas.clientHeight
-    canvas.width = width * ratio
-    canvas.height = height * ratio
-    const context = canvas.getContext('2d')
-    if (!context) return
-    context.scale(ratio, ratio)
-    context.clearRect(0, 0, width, height)
-
-    const colors = ['#2f7860', '#6fa98f', '#a8cbb9', '#d2e6dc', '#e9f4ef']
-    const totalExpenses = Math.max(totals.totalDebitsPaise, 1)
-    const centerX = 155
-    const centerY = 184
-    const radius = 105
-    let startAngle = -Math.PI / 2
-    categories.forEach(([, amount], index) => {
-      const slice = (amount / totalExpenses) * Math.PI * 2
-      context.beginPath()
-      context.moveTo(centerX, centerY)
-      context.arc(centerX, centerY, radius, startAngle, startAngle + slice)
-      context.closePath()
-      context.fillStyle = colors[index % colors.length]
-      context.fill()
-      startAngle += slice
-    })
-    context.beginPath()
-    context.arc(centerX, centerY, 62, 0, Math.PI * 2)
-    context.fillStyle = '#ffffff'
-    context.fill()
-    context.fillStyle = '#1b2b24'
-    context.font = '600 16px "DM Sans", sans-serif'
-    context.textAlign = 'center'
-    context.fillText('Expenses', centerX, centerY - 2)
-    context.fillStyle = '#78827c'
-    context.font = '12px "DM Sans", sans-serif'
-    context.fillText(formatCurrency(totals.totalDebitsPaise), centerX, centerY + 18)
-  }, [categories, totals.totalDebitsPaise])
+  const validation = validateStatement(statement)
+  const expectedClosingBalance =
+    statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise
+  const mismatch = statement.closingBalancePaise - expectedClosingBalance
 
   return (
     <div className="canvas-renderer">
@@ -79,27 +42,65 @@ export function CanvasSummary({ statement }: CanvasSummaryProps) {
         <button className="download-button" type="button" onClick={() => window.print()}>↓ Save summary</button>
       </div>
       <div className="canvas-artboard">
-        <div className="canvas-artboard-header"><div className="brand"><span className="brand-mark">F</span><span>finsync</span></div><span>JUNE 2024</span></div>
-        <div className="canvas-metrics">
-          <Metric label="Income" value={formatCurrency(totals.totalCreditsPaise)} kind="income" />
-          <Metric label="Expenses" value={formatCurrency(totals.totalDebitsPaise)} kind="expense" />
-          <Metric label="Saved" value={formatCurrency(savingsPaise)} kind="saved" />
-        </div>
-        <div className="canvas-chart">
-          <canvas ref={canvasRef} aria-label={`Spending breakdown totaling ${formatCurrency(totals.totalDebitsPaise)}`} />
-          <div className="category-list"><h2>Spending breakdown</h2>{categories.map(([category, amount], index) => <CategoryRow key={category} category={category} amountPaise={amount} totalPaise={totals.totalDebitsPaise} index={index} />)}</div>
-        </div>
-        <div className="canvas-insight"><span aria-hidden="true">✦</span><p><strong>Nice progress, {statement.accountHolder.split(' ')[0]}.</strong> You saved {formatCurrency(savingsPaise)} this month.</p></div>
+        <Canvas
+          theme={finsyncHyperTheme}
+          width={1200}
+          height={630}
+          title="FinSync financial summary"
+          style={{ padding: 44, gap: 24, backgroundColor: '#F0F7F3', color: token('colors.ink'), fontFamily: 'DM Sans, Arial, sans-serif' }}
+        >
+          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>finsync</Text>
+            <Text style={{ fontSize: 11, fontWeight: 700, color: token('colors.muted') }}>JUNE 2024</Text>
+          </Row>
+          <Row style={{ gap: 14 }}>
+            <Metric label="Income" value={formatCurrency(totals.totalCreditsPaise)} />
+            <Metric label="Expenses" value={formatCurrency(totals.totalDebitsPaise)} />
+            <Metric label="Net cash flow" value={formatCurrency(savingsPaise)} />
+          </Row>
+          <Divider style={{ borderTop: `1px solid ${token('colors.line')}` }} />
+          <Row style={{ gap: 24 }}>
+            <Column style={{ flex: 1, gap: 12, padding: 18, backgroundColor: token('colors.surface'), borderRadius: 9 }}>
+              <Heading level={2} style={{ fontSize: 17 }}>Spending breakdown</Heading>
+              {categories.map(([category, amount]) => (
+                <CategoryRow key={category} category={category} amountPaise={amount} totalPaise={totals.totalDebitsPaise} />
+              ))}
+            </Column>
+            <Column style={{ flex: 1, gap: 10, padding: 18, backgroundColor: token('colors.primarySoft'), borderRadius: 9 }}>
+              <Heading level={2} style={{ fontSize: 17 }}>Monthly summary</Heading>
+              <Text style={{ color: token('colors.muted'), fontSize: 12 }}>Net cash flow for June</Text>
+              <Text style={{ color: token('colors.primary'), fontSize: 22, fontWeight: 700 }}>{formatCurrency(savingsPaise)}</Text>
+              {!validation.valid && (
+                <Text style={{ padding: 10, border: `1px solid ${token('colors.warning')}`, borderRadius: 7, backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 11, lineHeight: 1.4 }}>
+                  Statement needs review: {mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
+                </Text>
+              )}
+            </Column>
+          </Row>
+        </Canvas>
       </div>
     </div>
   )
 }
 
-function Metric({ label, value, kind }: { label: string; value: string; kind: 'income' | 'expense' | 'saved' }) {
-  return <div className={`canvas-metric ${kind}`}><span>{label}</span><strong>{value}</strong></div>
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <Column style={{ flex: 1, gap: 8, padding: 18, backgroundColor: token('colors.surface'), border: `1px solid ${token('colors.line')}`, borderRadius: 9 }}>
+      <Text style={{ fontSize: 11, color: token('colors.muted') }}>{label}</Text>
+      <Text style={{ fontSize: 22, fontWeight: 700 }}>{value}</Text>
+    </Column>
+  )
 }
 
-function CategoryRow({ category, amountPaise, totalPaise, index }: { category: string; amountPaise: number; totalPaise: number; index: number }) {
+function CategoryRow({ category, amountPaise, totalPaise }: { category: string; amountPaise: number; totalPaise: number }) {
   const percentage = Math.round((amountPaise / totalPaise) * 100)
-  return <div className="category-row"><div><span className={`category-dot category-${index}`} /><strong>{category}</strong><span>{percentage}%</span></div><div className="category-bar"><i style={{ width: `${percentage}%` }} /></div><small>{formatCurrency(amountPaise)}</small></div>
+  return (
+    <Column style={{ gap: 5 }}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <Text style={{ fontSize: 12, fontWeight: 700 }}>{category}</Text>
+        <Text style={{ fontSize: 11, color: token('colors.muted') }}>{percentage}%</Text>
+      </Row>
+      <Text style={{ fontSize: 10, color: token('colors.muted') }}>{formatCurrency(amountPaise)}</Text>
+    </Column>
+  )
 }

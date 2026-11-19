@@ -1,3 +1,5 @@
+import { defineTheme, token } from '@hyper-elements/react'
+
 export const theme = {
   colors: {
     ink: '#182A38',
@@ -36,3 +38,26 @@ export const theme = {
 } as const
 
 export type FinSyncTheme = typeof theme
+
+export const finsyncHyperTheme = defineTheme({
+  colors: {
+    ink: theme.colors.ink,
+    muted: theme.colors.muted,
+    line: theme.colors.line,
+    surface: theme.colors.surface,
+    surfaceSubtle: theme.colors.surfaceSubtle,
+    primary: theme.colors.primary,
+    primaryDark: theme.colors.primaryDark,
+    primarySoft: theme.colors.primarySoft,
+    debit: theme.colors.debit,
+    debitSoft: theme.colors.debitSoft,
+    warning: theme.colors.warning,
+    warningSoft: theme.colors.warningSoft,
+  },
+  fonts: {
+    body: "'DM Sans', Arial, sans-serif",
+    mono: "'DM Mono', monospace",
+  },
+})
+
+export { token }
