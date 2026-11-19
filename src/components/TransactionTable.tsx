@@ -31,7 +31,8 @@ export function TransactionTable({
     transactions: allTransactions,
   })
   const sortedTransactions = [...transactions].sort((first, second) =>
-    first.date.localeCompare(second.date),
+    second.date.localeCompare(first.date) ||
+    second.id.localeCompare(first.id),
   )
   const balanceById = new Map(
     runningBalances.map((balance) => [balance.transactionId, balance.balancePaise]),

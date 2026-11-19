@@ -6,6 +6,7 @@ import {
   formatDate,
   formatStatementPeriod,
   getReconciliation,
+  isValidIsoDate,
   maskAccountNumber,
   normalizeStatement,
   validateStatement,
@@ -125,5 +126,67 @@ describe('financial calculations', () => {
     expect(validateStatement(invalidType).errors.some((error) =>
       error.includes('Invalid transaction type'),
     )).toBe(true)
+  })
+
+  it('accepts zero-value transactions and empty arrays', () => {
+    const zero = { ...validStatement.transactions[0], amountPaise: 0 }
+    expect(calculateTotals([zero])).toEqual({ totalCreditsPaise: 0, totalDebitsPaise: 0 })
+    expect(calculateTotals([])).toEqual({ totalCreditsPaise: 0, totalDebitsPaise: 0 })
+  })
+
+  it('preserves source order for multiple transactions on the same date', () => {
+    const sameDate: Statement = {
+      ...validStatement,
+      transactions: [
+        { ...validStatement.transactions[0], id: 'same-1', date: '2024-06-10' },
+        { ...validStatement.transactions[1], id: 'same-2', date: '2024-06-10' },
+      ],
+    }
+    expect(calculateRunningBalances(sameDate)).toEqual([
+      { transactionId: 'same-1', balancePaise: 5_350_000 },
+      { transactionId: 'same-2', balancePaise: 5_250_000 },
+    ])
+  })
+
+  it('supports large safe integer paise values', () => {
+    const large = 900_000_000_000_000
+    expect(formatCurrency(large)).toContain('₹')
+  })
+
+  it('rejects negative, fractional, and unsafe amounts', () => {
+    expect(() => normalizeStatement({
+      ...validStatement,
+      transactions: [{ ...validStatement.transactions[0], amountPaise: -1 }],
+    })).toThrow('amountPaise')
+    expect(() => normalizeStatement({
+      ...validStatement,
+      transactions: [{ ...validStatement.transactions[0], amountPaise: 1.5 }],
+    })).toThrow('amountPaise')
+    expect(() => normalizeStatement({
+      ...validStatement,
+      transactions: [{ ...validStatement.transactions[0], amountPaise: Number.MAX_SAFE_INTEGER + 1 }],
+    })).toThrow('amountPaise')
+  })
+
+  it('rejects impossible and malformed dates', () => {
+    expect(isValidIsoDate('2024-02-29')).toBe(true)
+    expect(isValidIsoDate('2023-02-29')).toBe(false)
+    expect(isValidIsoDate('2024-13-01')).toBe(false)
+    expect(() => normalizeStatement({
+      ...validStatement,
+      transactions: [{ ...validStatement.transactions[0], date: '2024-02-30' }],
+    })).toThrow('Invalid date')
+  })
+
+  it('detects arithmetic overflow in totals and running balances', () => {
+    expect(() => calculateTotals([
+      { ...validStatement.transactions[0], amountPaise: Number.MAX_SAFE_INTEGER },
+      { ...validStatement.transactions[0], amountPaise: 1 },
+    ])).toThrow('Arithmetic overflow')
+    expect(() => calculateRunningBalances({
+      ...validStatement,
+      openingBalancePaise: Number.MAX_SAFE_INTEGER,
+      transactions: [{ ...validStatement.transactions[0], amountPaise: 1 }],
+    })).toThrow('Arithmetic overflow')
   })
 })

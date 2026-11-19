@@ -35,7 +35,10 @@ function App() {
         const matchesDateFrom = !dateFrom || transaction.date >= dateFrom
         const matchesDateTo = !dateTo || transaction.date <= dateTo
         return matchesFilter && searchText.includes(query.toLowerCase()) && matchesDateFrom && matchesDateTo
-      }),
+      }).sort((first, second) =>
+        first.date.localeCompare(second.date) ||
+        first.id.localeCompare(second.id),
+      ).reverse(),
     [dateFrom, dateTo, filter, query],
   )
 

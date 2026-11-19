@@ -50,6 +50,19 @@ const normalizeAmount = (value: unknown, fieldName: string): number => {
   return value
 }
 
+const ensureSafeArithmetic = (value: number, operation: string): number => {
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(`Arithmetic overflow while calculating ${operation}`)
+  }
+  return value
+}
+
+export function isValidIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
+
 export function normalizeStatement(input: StatementInput): Statement {
   if (!input || typeof input !== 'object') {
     throw new Error('Statement input is required')
@@ -102,9 +115,15 @@ export function calculateTotals(transactions: Transaction[]): StatementTotals {
         throw new Error(`Invalid transaction type: ${String(transaction.type)}`)
       }
       if (transaction.type === 'CREDIT') {
-        totals.totalCreditsPaise += transaction.amountPaise
+        totals.totalCreditsPaise = ensureSafeArithmetic(
+          totals.totalCreditsPaise + transaction.amountPaise,
+          'credit totals',
+        )
       } else {
-        totals.totalDebitsPaise += transaction.amountPaise
+        totals.totalDebitsPaise = ensureSafeArithmetic(
+          totals.totalDebitsPaise + transaction.amountPaise,
+          'debit totals',
+        )
       }
       return totals
     },
@@ -113,6 +132,9 @@ export function calculateTotals(transactions: Transaction[]): StatementTotals {
 }
 
 export function calculateRunningBalances(statement: Statement): RunningBalance[] {
+  if (!isIntegerPaise(statement.openingBalancePaise)) {
+    throw new Error('Opening balance must be a non-negative integer number of paise')
+  }
   let balancePaise = statement.openingBalancePaise
   const chronologicalTransactions = statement.transactions
     .map((transaction, index) => ({ transaction, index }))
@@ -121,7 +143,18 @@ export function calculateRunningBalances(statement: Statement): RunningBalance[]
       first.index - second.index,
     )
   return chronologicalTransactions.map(({ transaction }) => {
-    balancePaise += transaction.type === 'CREDIT' ? transaction.amountPaise : -transaction.amountPaise
+    if (transaction.type !== 'CREDIT' && transaction.type !== 'DEBIT') {
+      throw new Error(`Invalid transaction type: ${String(transaction.type)}`)
+    }
+    if (!isIntegerPaise(transaction.amountPaise)) {
+      throw new Error(`Invalid amount for transaction ${transaction.id}`)
+    }
+    balancePaise = ensureSafeArithmetic(
+      transaction.type === 'CREDIT'
+        ? balancePaise + transaction.amountPaise
+        : balancePaise - transaction.amountPaise,
+      `running balance for ${transaction.id}`,
+    )
     return { transactionId: transaction.id, balancePaise }
   })
 }
@@ -131,18 +164,33 @@ export function validateStatement(statement: Statement): ValidationResult {
   const transactions = Array.isArray(statement.transactions) ? statement.transactions : []
   const periodStart = statement.statementPeriod?.start ?? ''
   const periodEnd = statement.statementPeriod?.end ?? ''
-  const totals = calculateTotals(
-    transactions.filter((transaction) =>
-      transaction.type === 'CREDIT' || transaction.type === 'DEBIT',
-    ),
-  )
-  const runningBalances = calculateRunningBalances({
-    ...statement,
-    transactions,
-    openingBalancePaise: isIntegerPaise(statement.openingBalancePaise)
-      ? statement.openingBalancePaise
-      : 0,
-  })
+  let totals: StatementTotals = { totalCreditsPaise: 0, totalDebitsPaise: 0 }
+  try {
+    totals = calculateTotals(
+      transactions.filter((transaction) =>
+        (transaction.type === 'CREDIT' || transaction.type === 'DEBIT') &&
+        isIntegerPaise(transaction.amountPaise),
+      ),
+    )
+  } catch {
+    totals = { totalCreditsPaise: 0, totalDebitsPaise: 0 }
+  }
+
+  let runningBalances: RunningBalance[] = []
+  if (isIntegerPaise(statement.openingBalancePaise)) {
+    try {
+      runningBalances = calculateRunningBalances({
+        ...statement,
+        transactions: transactions.filter((transaction) =>
+          (transaction.type === 'CREDIT' || transaction.type === 'DEBIT') &&
+          isIntegerPaise(transaction.amountPaise),
+        ),
+        openingBalancePaise: statement.openingBalancePaise,
+      })
+    } catch {
+      runningBalances = []
+    }
+  }
 
   for (const field of REQUIRED_ACCOUNT_FIELDS) {
     if (typeof statement[field] !== 'string' || statement[field].trim() === '') {
@@ -152,6 +200,13 @@ export function validateStatement(statement: Statement): ValidationResult {
   if (statement.currency !== 'INR') errors.push('Currency must be INR')
   if (!statement.statementPeriod?.start || !statement.statementPeriod?.end) {
     errors.push('Missing required field: statementPeriod')
+  } else {
+    if (!isValidIsoDate(statement.statementPeriod.start)) {
+      errors.push('Invalid statement period start date')
+    }
+    if (!isValidIsoDate(statement.statementPeriod.end)) {
+      errors.push('Invalid statement period end date')
+    }
   }
   if (periodStart && periodEnd && periodStart > periodEnd) {
     errors.push('Statement period start must be before its end')
@@ -170,13 +225,22 @@ export function validateStatement(statement: Statement): ValidationResult {
     if (!isIntegerPaise(transaction.amountPaise)) {
       errors.push(`Invalid amount for transaction ${transaction.id || index + 1}`)
     }
-    if (transaction.date < periodStart || transaction.date > periodEnd) {
+    if (!isValidIsoDate(transaction.date)) {
+      errors.push(`Invalid date for transaction ${transaction.id || index + 1}`)
+    } else if (transaction.date < periodStart || transaction.date > periodEnd) {
       errors.push(`Transaction ${transaction.id || index + 1} is outside the statement period`)
     }
   })
 
-  const expectedClosingBalance =
-    statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise
+  const expectedClosingBalance = isIntegerPaise(statement.openingBalancePaise)
+    ? ensureSafeArithmetic(
+        ensureSafeArithmetic(
+          ensureSafeArithmetic(statement.openingBalancePaise + totals.totalCreditsPaise, 'expected closing credit total'),
+          'expected closing validation',
+        ) - totals.totalDebitsPaise,
+        'expected closing debit total',
+      )
+    : 0
   if (statement.closingBalancePaise !== expectedClosingBalance) {
     errors.push(
       `Closing balance mismatch: expected ${expectedClosingBalance}, received ${statement.closingBalancePaise}`,
@@ -241,9 +305,40 @@ export function getReconciliation(statement: Statement): {
   expectedClosingBalancePaise: number
   differencePaise: number
 } {
-  const totals = calculateTotals(statement.transactions)
-  const expectedClosingBalancePaise =
-    statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise
+  const totals = calculateTotals(
+    statement.transactions.filter((transaction) =>
+      (transaction.type === 'CREDIT' || transaction.type === 'DEBIT') &&
+      isIntegerPaise(transaction.amountPaise),
+    ),
+  )
+  if (!isIntegerPaise(statement.openingBalancePaise)) {
+    return {
+      valid: false,
+      expectedClosingBalancePaise: 0,
+      differencePaise: Number.isSafeInteger(statement.closingBalancePaise)
+        ? statement.closingBalancePaise
+        : 0,
+    }
+  }
+  let expectedClosingBalancePaise = 0
+  try {
+    const openingAndCredits = ensureSafeArithmetic(
+      statement.openingBalancePaise + totals.totalCreditsPaise,
+      'expected closing credit total',
+    )
+    expectedClosingBalancePaise = ensureSafeArithmetic(
+      openingAndCredits - totals.totalDebitsPaise,
+      'expected closing debit total',
+    )
+  } catch {
+    return {
+      valid: false,
+      expectedClosingBalancePaise: 0,
+      differencePaise: Number.isSafeInteger(statement.closingBalancePaise)
+        ? statement.closingBalancePaise
+        : 0,
+    }
+  }
   const differencePaise = statement.closingBalancePaise - expectedClosingBalancePaise
   return {
     valid: differencePaise === 0,
