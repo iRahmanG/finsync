@@ -114,4 +114,16 @@ describe('financial calculations', () => {
     expect(result.errors.some((error) => error.includes('Incorrect running balance'))).toBe(true)
     expect(result.errors.some((error) => error.includes('accountHolder'))).toBe(true)
   })
+
+  it('validates transaction types directly', () => {
+    const invalidType = {
+      ...validStatement,
+      transactions: [
+        { ...validStatement.transactions[0], type: 'TRANSFER' as never },
+      ],
+    }
+    expect(validateStatement(invalidType).errors.some((error) =>
+      error.includes('Invalid transaction type'),
+    )).toBe(true)
+  })
 })
