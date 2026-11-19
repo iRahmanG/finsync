@@ -271,6 +271,17 @@ export function formatCurrency(amountPaise: number): string {
   }).format(amountPaise / 100)
 }
 
+export function formatExportCurrency(amountPaise: number): string {
+  if (typeof amountPaise !== 'number' || !Number.isSafeInteger(amountPaise)) {
+    throw new Error('Currency amount must be an integer number of paise')
+  }
+  const rupees = (amountPaise / 100).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+  return `INR ${rupees}`
+}
+
 export function maskAccountNumber(accountNumber: string): string {
   const trimmed = accountNumber.trim()
   if (!trimmed) return ''
@@ -280,6 +291,15 @@ export function maskAccountNumber(accountNumber: string): string {
 
   const lastFour = digits.slice(-4).join('')
   return `•••• ${lastFour}`
+}
+
+export function categoryFor(description: string): string {
+  const value = description.toLowerCase()
+  if (value.includes('rent')) return 'Housing'
+  if (value.includes('grocery')) return 'Groceries'
+  if (value.includes('electricity')) return 'Utilities'
+  if (value.includes('restaurant')) return 'Dining'
+  return 'Uncategorized'
 }
 
 export function formatStatementPeriod(start: string, end: string): string {

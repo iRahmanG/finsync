@@ -72,6 +72,9 @@ h2 { margin-bottom: 5px; font-size: 16px; }
 .net-cash-flow strong { font-size: 16px; }
 .validation-banner { display: flex; flex-direction: column; gap: 5px; margin: 0 0 20px; padding: 14px 16px; border: 1px solid #e3c878; border-radius: 8px; color: #6f5100; background: #fff7d9; font-size: 12px; }
 .validation-banner strong { font-size: 13px; }
+.download-button:disabled { cursor: wait; opacity: 0.72; }
+.export-message { margin: -12px 0 20px; color: var(--green-dark); font-size: 12px; }
+.export-message.error { color: var(--red); }
 .section-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 18px; }
 .section-heading h2 { font-size: 19px; }
 .section-heading .muted { margin: 0; }

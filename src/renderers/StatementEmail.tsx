@@ -23,9 +23,10 @@ export function StatementEmailDocument({ statement, statementUrl = '#statement' 
   return (
     <Email
       theme={finsyncHyperTheme}
+      fonts={[{ family: 'FinSync Sans', src: '/fonts/FinSync-Regular.ttf', format: 'truetype', weight: 400 }]}
       width={560}
       previewText="Your FinSync account statement is ready"
-      style={{ gap: 16, backgroundColor: token('colors.surface'), color: token('colors.ink'), fontFamily: 'DM Sans, Arial, sans-serif' }}
+      style={{ gap: 16, backgroundColor: token('colors.surface'), color: token('colors.ink'), fontFamily: 'FinSync Sans, Arial, sans-serif' }}
     >
       <Text style={{ fontSize: 11, fontWeight: 700, color: token('colors.primary'), textTransform: 'uppercase', letterSpacing: 1 }}>Monthly statement</Text>
       <Heading level={1} style={{ fontSize: 30, lineHeight: 1.2, color: token('colors.ink') }}>Your account statement is ready</Heading>

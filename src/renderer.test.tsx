@@ -11,6 +11,8 @@ import {
   reconciledStatement,
 } from './test-fixtures'
 import { calculateTotals, getReconciliation, maskAccountNumber, validateStatement } from './financial'
+import { statementFilename } from './export'
+import { categoryFor } from './financial'
 
 const fixtures = [
   ['normal', reconciledStatement],
@@ -73,6 +75,21 @@ describe('cross-format renderer regressions', () => {
         expect(pdfOutline).toContain('No transactions')
         expect(canvasOutline).toContain('No debit transactions')
       }
+    })
+
+    describe('export filenames', () => {
+      it('uses the statement period in PDF and PNG filenames', () => {
+        expect(statementFilename({ start: '2024-06-01', end: '2024-06-30' }, 'pdf'))
+          .toBe('finsync-statement-20240601-20240630.pdf')
+        expect(statementFilename({ start: '2024-06-01', end: '2024-06-30' }, 'png'))
+          .toBe('finsync-summary-20240601-20240630.png')
+      })
+    })
+
+    describe('spending category heuristic', () => {
+      it('uses Uncategorized for descriptions without known keywords', () => {
+        expect(categoryFor('Merchant label not covered by the template')).toBe('Uncategorized')
+      })
     })
   }
 })

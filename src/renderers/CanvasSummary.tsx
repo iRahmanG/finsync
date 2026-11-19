@@ -1,28 +1,40 @@
-import { calculateTotals, formatCurrency, formatStatementPeriod, getReconciliation } from '../financial'
+import { calculateTotals, categoryFor, formatCurrency, formatExportCurrency, formatStatementPeriod, getReconciliation } from '../financial'
 import type { Statement } from '../types'
 import { Canvas, Column, Divider, Heading, Row, Text } from '@hyper-elements/react'
 import { finsyncHyperTheme, token } from '../theme'
+import { exportPng } from '../export'
+import { useState } from 'react'
 
 interface CanvasSummaryProps {
   statement: Statement
 }
 
-const categoryFor = (description: string) => {
-  const value = description.toLowerCase()
-  if (value.includes('rent')) return 'Housing'
-  if (value.includes('grocery')) return 'Groceries'
-  if (value.includes('electricity')) return 'Utilities'
-  if (value.includes('restaurant')) return 'Dining'
-  return 'Other'
-}
-
 export function CanvasSummary({ statement }: CanvasSummaryProps) {
+  const [exportState, setExportState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [exportMessage, setExportMessage] = useState('')
+
+  const handleExport = async () => {
+    setExportState('loading')
+    setExportMessage('')
+    try {
+      await exportPng(CanvasDocument({ statement }), statement)
+      setExportState('success')
+      setExportMessage('PNG download started.')
+    } catch (error) {
+      setExportState('error')
+      setExportMessage(error instanceof Error ? error.message : 'PNG export failed.')
+    }
+  }
+
   return (
     <div className="canvas-renderer">
       <div className="canvas-heading">
         <div><p className="eyebrow">FINANCIAL SNAPSHOT</p><h1>Statement at a glance</h1><p className="muted">{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</p></div>
-        <button className="download-button" type="button" onClick={() => window.print()}>↓ Save summary</button>
+        <button className="download-button" type="button" onClick={handleExport} disabled={exportState === 'loading'}>
+          {exportState === 'loading' ? 'Preparing PNG…' : '↓ Download PNG'}
+        </button>
       </div>
+      {exportMessage && <p className={exportState === 'error' ? 'export-message error' : 'export-message'} role={exportState === 'error' ? 'alert' : 'status'}>{exportMessage}</p>}
       <div className="canvas-artboard">
         <CanvasPreview statement={statement} />
       </div>
@@ -50,9 +62,9 @@ function CanvasPreview({ statement }: CanvasSummaryProps) {
         <span>{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</span>
       </div>
       <div className="canvas-metrics">
-        <div className="canvas-metric income"><span>Income</span><strong>{formatCurrency(totals.totalCreditsPaise)}</strong></div>
-        <div className="canvas-metric expense"><span>Expenses</span><strong>{formatCurrency(totals.totalDebitsPaise)}</strong></div>
-        <div className="canvas-metric balance"><span>Net cash flow</span><strong>{formatCurrency(netCashFlowPaise)}</strong></div>
+        <div className="canvas-metric income"><span>Income</span><strong>{formatExportCurrency(totals.totalCreditsPaise)}</strong></div>
+        <div className="canvas-metric expense"><span>Expenses</span><strong>{formatExportCurrency(totals.totalDebitsPaise)}</strong></div>
+        <div className="canvas-metric balance"><span>Net cash flow</span><strong>{formatExportCurrency(netCashFlowPaise)}</strong></div>
       </div>
       <div className="canvas-chart">
         <div className="category-list">
@@ -96,19 +108,20 @@ export function CanvasDocument({ statement }: CanvasSummaryProps) {
   return (
     <Canvas
           theme={finsyncHyperTheme}
+          fonts={[{ family: 'FinSync Sans', src: '/fonts/FinSync-Regular.ttf', format: 'truetype', weight: 400 }]}
           width={1200}
           height={630}
           title="FinSync financial summary"
-          style={{ padding: 44, gap: 24, backgroundColor: '#F0F7F3', color: token('colors.ink'), fontFamily: 'DM Sans, Arial, sans-serif' }}
+          style={{ padding: 44, gap: 24, backgroundColor: '#F0F7F3', color: token('colors.ink'), fontFamily: 'FinSync Sans, Arial, sans-serif' }}
         >
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>finsync</Text>
             <Text style={{ fontSize: 11, fontWeight: 700, color: token('colors.muted') }}>{statementPeriod}</Text>
           </Row>
           <Row style={{ gap: 14 }}>
-            <Metric label="Income" value={formatCurrency(totals.totalCreditsPaise)} />
-            <Metric label="Expenses" value={formatCurrency(totals.totalDebitsPaise)} />
-            <Metric label="Net cash flow" value={formatCurrency(savingsPaise)} />
+            <Metric label="Income" value={formatExportCurrency(totals.totalCreditsPaise)} />
+            <Metric label="Expenses" value={formatExportCurrency(totals.totalDebitsPaise)} />
+            <Metric label="Net cash flow" value={formatExportCurrency(savingsPaise)} />
           </Row>
           <Divider style={{ borderTop: { width: 1, style: 'solid', color: '#E4E9E6' } }} />
           <Row style={{ gap: 24 }}>
@@ -123,10 +136,10 @@ export function CanvasDocument({ statement }: CanvasSummaryProps) {
             <Column style={{ flex: 1, gap: 10, padding: 18, backgroundColor: token('colors.primarySoft'), borderRadius: 9 }}>
               <Heading level={2} style={{ fontSize: 17 }}>Monthly summary</Heading>
               <Text style={{ color: token('colors.muted'), fontSize: 12 }}>Net cash flow for the statement period</Text>
-              <Text style={{ color: token('colors.primary'), fontSize: 22, fontWeight: 700 }}>{formatCurrency(savingsPaise)}</Text>
+              <Text style={{ color: token('colors.primary'), fontSize: 22, fontWeight: 700 }}>{formatExportCurrency(savingsPaise)}</Text>
               {!reconciliation.valid && (
                 <Text style={{ padding: 10, border: { width: 1, style: 'solid', color: '#9A6700' }, borderRadius: 7, backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 11, lineHeight: 1.4 }}>
-                  Statement needs review: {mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
+                  Statement needs review: {mismatch > 0 ? 'over' : 'under'} by {formatExportCurrency(Math.abs(mismatch))}.
                 </Text>
               )}
             </Column>
@@ -152,7 +165,7 @@ function CategoryRow({ category, amountPaise, totalPaise }: { category: string; 
         <Text style={{ fontSize: 12, fontWeight: 700 }}>{category}</Text>
         <Text style={{ fontSize: 11, color: token('colors.muted') }}>{percentage}%</Text>
       </Row>
-      <Text style={{ fontSize: 10, color: token('colors.muted') }}>{formatCurrency(amountPaise)}</Text>
+      <Text style={{ fontSize: 10, color: token('colors.muted') }}>{formatExportCurrency(amountPaise)}</Text>
     </Column>
   )
 }

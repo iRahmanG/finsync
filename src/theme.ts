@@ -55,7 +55,7 @@ export const finsyncHyperTheme = defineTheme({
     warningSoft: theme.colors.warningSoft,
   },
   fonts: {
-    body: "'DM Sans', Arial, sans-serif",
+    body: "'FinSync Sans', Arial, sans-serif",
     mono: "'DM Mono', monospace",
   },
 })
