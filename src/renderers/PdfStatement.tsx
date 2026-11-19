@@ -15,6 +15,8 @@ import {
 import { finsyncHyperTheme, token } from '../theme'
 import { exportPdf } from '../export'
 import { useState } from 'react'
+import * as React from 'react'
+void React
 
 interface PdfStatementProps {
   statement: Statement

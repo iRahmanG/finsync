@@ -4,6 +4,8 @@ import { Canvas, Column, Divider, Heading, Row, Text } from '@hyper-elements/rea
 import { finsyncHyperTheme, token } from '../theme'
 import { exportPng } from '../export'
 import { useState } from 'react'
+import * as React from 'react'
+void React
 
 interface CanvasSummaryProps {
   statement: Statement

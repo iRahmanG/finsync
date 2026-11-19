@@ -1,32 +1,116 @@
-# React + TypeScript + Vite
+# FinSync
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+FinSync is a reusable React and TypeScript financial statement template built with `@hyper-elements/react@0.5.0`.
 
-Currently, two official plugins are available:
+It provides:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Interactive responsive web statement.
+- Email-safe Hyper Elements preview.
+- A4 Hyper Elements PDF document preview and export.
+- 1200 × 630 Hyper Elements canvas preview and PNG export.
+- Integer-paise calculations, reconciliation warnings, account masking, and running balances.
 
-## React Compiler
+FinSync is a synthetic template, not a banking integration or a regulatory-compliant statement system.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Install
 
-## Expanding the Oxlint configuration
+```powershell
+npm install
+npm install @hyper-elements/react@0.5.0 @react-pdf/renderer satori @resvg/resvg-js
+npm run dev -- --host 127.0.0.1
+npm run export
+```
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+Keep the Vite app and export server running separately for PDF and PNG downloads.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+## Basic integration
+
+```tsx
+import { FinSyncStatement } from './src'
+import type { Statement } from './src'
+
+const statement: Statement = {
+  accountHolder: 'Meera Shah',
+  accountNumber: '•••• 7391',
+  accountType: 'Current Account',
+  currency: 'INR',
+  statementPeriod: { start: '2025-01-01', end: '2025-01-31' },
+  openingBalancePaise: 75_000_000,
+  closingBalancePaise: 98_050_000,
+  transactions: [],
+}
+
+export function StatementPage() {
+  return <FinSyncStatement statement={statement} initialView="web" />
 }
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+For a complete example, see [docs/integration.example.tsx](docs/integration.example.tsx).
+
+## Statement data
+
+`Transaction` requires:
+
+- `id`
+- `date` as `YYYY-MM-DD`
+- `description`
+- `reference`
+- `type`: `CREDIT` or `DEBIT`
+- `amountPaise`: non-negative safe integer paise
+- optional `balancePaise`
+
+`Statement` requires:
+
+- `accountHolder`
+- `accountNumber`
+- `accountType`
+- `currency`: `INR`
+- `statementPeriod`
+- `openingBalancePaise`
+- `closingBalancePaise`
+- `transactions`
+
+All money calculations use integer paise. Invalid types, impossible dates, unsafe amounts, duplicate IDs, and outside-period transactions are rejected or reported.
+
+## Theme customization
+
+```tsx
+<FinSyncStatement
+  statement={statement}
+  config={{
+    brandName: 'Northstar',
+    theme: {
+      primaryColor: '#175CD3',
+      textColor: '#182A38',
+      mutedColor: '#667085',
+      surfaceColor: '#FFFFFF',
+      subtleSurfaceColor: '#F7F9FC',
+      borderColor: '#E4E7EC',
+      borderRadius: 8,
+    },
+  }}
+/>
+```
+
+Supported public theme keys are primary, text, muted, surface, subtle surface, border, border radius, body font, and mono font.
+
+## Privacy
+
+Account numbers are masked by default. Renderers do not expose a public opt-out. Use only synthetic demonstration data.
+
+## Exports
+
+- PDF: local export server with Hyper Elements `renderPdf`.
+- PNG: local export server with Hyper Elements `renderImage`.
+- Export filenames include the statement period.
+- Export failures produce visible error states.
+
+See [docs/EXPORTS.md](docs/EXPORTS.md).
+
+## Verification
+
+```powershell
+npm test
+npm run lint
+npm run build
+```

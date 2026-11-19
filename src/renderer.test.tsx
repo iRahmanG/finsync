@@ -9,10 +9,14 @@ import {
   manyTransactionStatement,
   mismatchStatement,
   reconciledStatement,
+  alternateStatement,
 } from './test-fixtures'
 import { calculateTotals, getReconciliation, maskAccountNumber, validateStatement } from './financial'
 import { statementFilename } from './export'
 import { categoryFor } from './financial'
+import { createFinSyncTheme } from './theme'
+import { FinSyncStatement } from './FinSyncStatement'
+import React from 'react'
 
 const fixtures = [
   ['normal', reconciledStatement],
@@ -20,6 +24,7 @@ const fixtures = [
   ['empty', emptyStatement],
   ['many', manyTransactionStatement],
   ['long', longDescriptionStatement],
+  ['alternate', alternateStatement],
 ] as const
 
 describe('cross-format renderer regressions', () => {
@@ -89,6 +94,27 @@ describe('cross-format renderer regressions', () => {
     describe('spending category heuristic', () => {
       it('uses Uncategorized for descriptions without known keywords', () => {
         expect(categoryFor('Merchant label not covered by the template')).toBe('Uncategorized')
+      })
+    })
+
+    describe('public integration API', () => {
+      it('renders alternate data through FinSyncStatement', () => {
+        const element = React.createElement(FinSyncStatement, {
+          statement: alternateStatement,
+          initialView: 'web',
+          config: { brandName: 'Northstar', theme: { primaryColor: '#175CD3' } },
+        })
+        expect(element.type).toBe(FinSyncStatement)
+        expect(element.props.statement).toBe(alternateStatement)
+        expect(validateStatement(alternateStatement).valid).toBe(true)
+      })
+
+      it('creates an extended theme with custom colors', () => {
+        const customTheme = createFinSyncTheme({
+          primaryColor: '#175CD3',
+          textColor: '#101828',
+        })
+        expect(customTheme).toBeDefined()
       })
     })
   }

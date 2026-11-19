@@ -1,7 +1,7 @@
 import http from 'node:http'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import * as React from 'react'
+import React from 'react'
 import { renderPdf } from '@hyper-elements/react/pdf'
 import { renderImage } from '@hyper-elements/react/image'
 import { PdfDocument } from '../src/renderers/PdfStatement'

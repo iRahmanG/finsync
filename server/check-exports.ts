@@ -5,9 +5,9 @@ import { renderPdf, templateAssets as pdfAssets } from '@hyper-elements/react/pd
 import { layoutImage, templateAssets as imageAssets } from '@hyper-elements/react/image'
 import { PdfDocument } from '../src/renderers/PdfStatement'
 import { CanvasDocument } from '../src/renderers/CanvasSummary'
-import type { Statement } from '../src/types'
 
-const statement = JSON.parse(await fs.readFile(path.join(process.cwd(), 'docs', 'exports', 'statement.json'), 'utf8')) as Statement
+import { reconciledStatement } from '../src/test-fixtures'
+const statement = reconciledStatement
 const regularFontBytes = await fs.readFile(path.join(process.cwd(), 'public', 'fonts', 'FinSync-Regular.ttf'))
 const boldFontBytes = await fs.readFile(path.join(process.cwd(), 'public', 'fonts', 'FinSync-Bold.ttf'))
 const regularFont = { family: 'FinSync Sans', src: regularFontBytes.buffer.slice(regularFontBytes.byteOffset, regularFontBytes.byteOffset + regularFontBytes.byteLength), weight: 400 }

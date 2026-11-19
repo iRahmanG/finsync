@@ -1,4 +1,5 @@
-import { defineTheme, token } from '@hyper-elements/react'
+import { defineTheme, extendTheme, token } from '@hyper-elements/react'
+import type { FinSyncThemeOverrides } from './public-api'
 
 export const theme = {
   colors: {
@@ -59,5 +60,22 @@ export const finsyncHyperTheme = defineTheme({
     mono: "'DM Mono', monospace",
   },
 })
+
+export function createFinSyncTheme(overrides: FinSyncThemeOverrides = {}) {
+  return extendTheme(finsyncHyperTheme, {
+    colors: {
+      ...(overrides.primaryColor ? { primary: overrides.primaryColor } : {}),
+      ...(overrides.textColor ? { ink: overrides.textColor } : {}),
+      ...(overrides.mutedColor ? { muted: overrides.mutedColor } : {}),
+      ...(overrides.surfaceColor ? { surface: overrides.surfaceColor } : {}),
+      ...(overrides.subtleSurfaceColor ? { surfaceSubtle: overrides.subtleSurfaceColor } : {}),
+      ...(overrides.borderColor ? { line: overrides.borderColor } : {}),
+    },
+    fonts: {
+      ...(overrides.fontFamily ? { body: overrides.fontFamily } : {}),
+      ...(overrides.monoFontFamily ? { mono: overrides.monoFontFamily } : {}),
+    },
+  })
+}
 
 export { token }

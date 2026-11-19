@@ -53,3 +53,20 @@ export const longDescriptionStatement: Statement = {
   }],
   closingBalancePaise: 5_350_000,
 }
+
+export const alternateStatement: Statement = {
+  accountHolder: 'Meera Shah',
+  accountNumber: '•••• 7391',
+  accountType: 'Current Account',
+  currency: 'INR',
+  statementPeriod: { start: '2025-01-01', end: '2025-01-31' },
+  openingBalancePaise: 75_000_00,
+  closingBalancePaise: 98_050_00,
+  transactions: [
+    { id: 'alt-credit-1', date: '2025-01-03', description: 'Consulting invoice payment', reference: 'NEFT/MSH/0103', type: 'CREDIT', amountPaise: 28_000_00, balancePaise: 103_000_00 },
+    { id: 'alt-debit-1', date: '2025-01-08', description: 'Office lease transfer', reference: 'UPI/LEASE/0108', type: 'DEBIT', amountPaise: 12_500_00, balancePaise: 90_500_00 },
+    { id: 'alt-debit-2', date: '2025-01-15', description: 'Cloud infrastructure subscription', reference: 'CARD/CLOUD/0115', type: 'DEBIT', amountPaise: 1_500_00, balancePaise: 89_000_00 },
+    { id: 'alt-credit-2', date: '2025-01-22', description: 'Client milestone payout', reference: 'RTGS/MSH/0122', type: 'CREDIT', amountPaise: 10_000_00, balancePaise: 99_000_00 },
+    { id: 'alt-debit-3', date: '2025-01-27', description: 'Travel reimbursement', reference: 'UPI/TRAVEL/0127', type: 'DEBIT', amountPaise: 950_00, balancePaise: 98_050_00 },
+  ],
+}
