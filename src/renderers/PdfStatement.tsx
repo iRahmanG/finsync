@@ -1,4 +1,4 @@
-import { calculateRunningBalances, calculateTotals, formatCurrency, maskAccountNumber, validateStatement } from '../financial'
+import { calculateRunningBalances, formatCurrency, formatDate, formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
 import type { Statement } from '../types'
 import {
   Column,
@@ -21,11 +21,6 @@ interface PdfStatementProps {
 
 const ROWS_PER_PAGE = 5
 
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(
-    new Date(`${date}T00:00:00`),
-  )
-
 export function PdfStatement({ statement, onClose }: PdfStatementProps) {
   const balances = calculateRunningBalances(statement)
   const chronologicalTransactions = [...statement.transactions].sort((first, second) =>
@@ -35,6 +30,11 @@ export function PdfStatement({ statement, onClose }: PdfStatementProps) {
     { length: Math.ceil(chronologicalTransactions.length / ROWS_PER_PAGE) },
     (_, pageIndex) => chronologicalTransactions.slice(pageIndex * ROWS_PER_PAGE, (pageIndex + 1) * ROWS_PER_PAGE),
   )
+  const statementPeriod = formatStatementPeriod(
+    statement.statementPeriod.start,
+    statement.statementPeriod.end,
+  )
+  const documentPages = pages.length === 0 ? [[]] : pages
 
   return (
     <div className="pdf-preview">
@@ -57,11 +57,11 @@ export function PdfStatement({ statement, onClose }: PdfStatementProps) {
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>finsync</Text>
               <Text style={{ fontSize: 10, color: token('colors.muted') }}>
-                {formatDate(statement.statementPeriod.start)} — {formatDate(statement.statementPeriod.end)}
+                {statementPeriod}
               </Text>
             </Row>
           </PageHeader>
-          {pages.map((page, pageIndex) => (
+          {documentPages.map((page, pageIndex) => (
             <Document.Page key={pageIndex} style={{ gap: 18 }}>
               {pageIndex === 0 && (
                 <Row style={{ gap: 16, padding: { top: 12, bottom: 12 } }}>
@@ -104,7 +104,12 @@ export function PdfStatement({ statement, onClose }: PdfStatementProps) {
                   )
                 })}
               </Table>
-              {pageIndex === pages.length - 1 && <PdfClosingSummary statement={statement} />}
+              {page.length === 0 && (
+                <Text style={{ padding: 18, border: `1px solid ${token('colors.line')}`, borderRadius: 8, backgroundColor: token('colors.surfaceSubtle'), color: token('colors.muted'), fontSize: 11, textAlign: 'center' }}>
+                  No transactions were recorded for this statement period.
+                </Text>
+              )}
+              {pageIndex === documentPages.length - 1 && <PdfClosingSummary statement={statement} />}
             </Document.Page>
           ))}
           <PageFooter style={{ border: { top: `1px solid ${token('colors.line')}` }, padding: { top: 10 } }}>
@@ -121,11 +126,8 @@ export function PdfStatement({ statement, onClose }: PdfStatementProps) {
 }
 
 function PdfClosingSummary({ statement }: { statement: Statement }) {
-  const totals = calculateTotals(statement.transactions)
-  const expectedClosingBalance =
-    statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise
-  const validation = validateStatement(statement)
-  const mismatch = statement.closingBalancePaise - expectedClosingBalance
+  const reconciliation = getReconciliation(statement)
+  const mismatch = reconciliation.differencePaise
 
   return (
     <Column style={{ gap: 8 }}>
@@ -133,9 +135,9 @@ function PdfClosingSummary({ statement }: { statement: Statement }) {
         <Text style={{ fontSize: 12 }}>Closing balance</Text>
         <Text style={{ fontSize: 12, fontWeight: 700 }}>{formatCurrency(statement.closingBalancePaise)}</Text>
       </Row>
-      {!validation.valid && (
+      {!reconciliation.valid && (
         <Text style={{ padding: 8, border: `1px solid ${token('colors.warning')}`, backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 9, lineHeight: 1.4 }}>
-          Statement needs review: calculated closing balance {formatCurrency(expectedClosingBalance)};
+          Statement needs review: calculated closing balance {formatCurrency(reconciliation.expectedClosingBalancePaise)};
           {' '}{mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
         </Text>
       )}

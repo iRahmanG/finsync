@@ -3,6 +3,9 @@ import {
   calculateRunningBalances,
   calculateTotals,
   formatCurrency,
+  formatDate,
+  formatStatementPeriod,
+  getReconciliation,
   maskAccountNumber,
   normalizeStatement,
   validateStatement,
@@ -69,6 +72,18 @@ describe('financial calculations', () => {
   it('masks account numbers', () => {
     expect(maskAccountNumber('4821')).toBe('•••• 4821')
     expect(maskAccountNumber('1234567890124821')).toBe('•••• 4821')
+  })
+
+  it('formats statement periods dynamically', () => {
+    expect(formatStatementPeriod('2024-06-01', '2024-06-30')).toBe('01 Jun 2024 — 30 Jun 2024')
+    expect(formatDate('2024-06-28')).toBe('28 Jun 2024')
+  })
+
+  it('reports the reconciliation difference', () => {
+    const reconciliation = getReconciliation(validStatement)
+    expect(reconciliation.valid).toBe(true)
+    expect(reconciliation.expectedClosingBalancePaise).toBe(5_250_000)
+    expect(reconciliation.differencePaise).toBe(0)
   })
 
   it('formats paise as INR', () => {

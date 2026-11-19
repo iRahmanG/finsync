@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import './App.css'
 import type { Transaction } from './types'
 import { statement } from './data/statement'
-import { calculateTotals, formatCurrency, validateStatement } from './financial'
+import { formatCurrency, getReconciliation } from './financial'
 import {
   AccountDetails,
   MonthlyFinancialSummary,
@@ -18,11 +18,7 @@ function App() {
   const [filter, setFilter] = useState<'ALL' | Transaction['type']>('ALL')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-  const validation = validateStatement(statement)
-  const totals = calculateTotals(statement.transactions)
-  const expectedClosingBalance =
-    statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise
-  const reconciliationDifference = statement.closingBalancePaise - expectedClosingBalance
+  const reconciliation = getReconciliation(statement)
 
   const filteredTransactions = useMemo(
     () =>
@@ -73,13 +69,13 @@ function App() {
       ) : (
       <main className="main-content" id="statement">
         <StatementHeader statement={statement} onDownload={() => window.print()} />
-        {!validation.valid && (
+        {!reconciliation.valid && (
           <aside className="validation-banner" role="alert">
             <strong>Statement needs review</strong>
             <span>
-              Calculated closing balance is {formatCurrency(expectedClosingBalance)};
+              Calculated closing balance is {formatCurrency(reconciliation.expectedClosingBalancePaise)};
               {' '}supplied balance is {formatCurrency(statement.closingBalancePaise)}
-              {' '}({reconciliationDifference > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(reconciliationDifference))}).
+              {' '}({reconciliation.differencePaise > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(reconciliation.differencePaise))}).
             </span>
           </aside>
         )}

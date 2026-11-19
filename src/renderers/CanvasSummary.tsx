@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { calculateTotals, formatCurrency, validateStatement } from '../financial'
+import { calculateTotals, formatCurrency, formatStatementPeriod, getReconciliation } from '../financial'
 import type { Statement } from '../types'
 import { Canvas, Column, Divider, Heading, Row, Text } from '@hyper-elements/react'
 import { finsyncHyperTheme, token } from '../theme'
@@ -30,15 +30,17 @@ export function CanvasSummary({ statement }: CanvasSummaryProps) {
     return [...categoryTotals.entries()].sort(([, first], [, second]) => second - first)
   }, [statement.transactions])
   const savingsPaise = totals.totalCreditsPaise - totals.totalDebitsPaise
-  const validation = validateStatement(statement)
-  const expectedClosingBalance =
-    statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise
-  const mismatch = statement.closingBalancePaise - expectedClosingBalance
+  const reconciliation = getReconciliation(statement)
+  const mismatch = reconciliation.differencePaise
+  const statementPeriod = formatStatementPeriod(
+    statement.statementPeriod.start,
+    statement.statementPeriod.end,
+  )
 
   return (
     <div className="canvas-renderer">
       <div className="canvas-heading">
-        <div><p className="eyebrow">FINANCIAL SNAPSHOT</p><h1>June at a glance</h1><p className="muted">A visual summary of your monthly money flow.</p></div>
+        <div><p className="eyebrow">FINANCIAL SNAPSHOT</p><h1>Statement at a glance</h1><p className="muted">{statementPeriod}</p></div>
         <button className="download-button" type="button" onClick={() => window.print()}>↓ Save summary</button>
       </div>
       <div className="canvas-artboard">
@@ -51,7 +53,7 @@ export function CanvasSummary({ statement }: CanvasSummaryProps) {
         >
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>finsync</Text>
-            <Text style={{ fontSize: 11, fontWeight: 700, color: token('colors.muted') }}>JUNE 2024</Text>
+            <Text style={{ fontSize: 11, fontWeight: 700, color: token('colors.muted') }}>{statementPeriod}</Text>
           </Row>
           <Row style={{ gap: 14 }}>
             <Metric label="Income" value={formatCurrency(totals.totalCreditsPaise)} />
@@ -62,15 +64,17 @@ export function CanvasSummary({ statement }: CanvasSummaryProps) {
           <Row style={{ gap: 24 }}>
             <Column style={{ flex: 1, gap: 12, padding: 18, backgroundColor: token('colors.surface'), borderRadius: 9 }}>
               <Heading level={2} style={{ fontSize: 17 }}>Spending breakdown</Heading>
-              {categories.map(([category, amount]) => (
+              {categories.length === 0 ? (
+                <Text style={{ color: token('colors.muted'), fontSize: 12 }}>No debit transactions in this period.</Text>
+              ) : categories.map(([category, amount]) => (
                 <CategoryRow key={category} category={category} amountPaise={amount} totalPaise={totals.totalDebitsPaise} />
               ))}
             </Column>
             <Column style={{ flex: 1, gap: 10, padding: 18, backgroundColor: token('colors.primarySoft'), borderRadius: 9 }}>
               <Heading level={2} style={{ fontSize: 17 }}>Monthly summary</Heading>
-              <Text style={{ color: token('colors.muted'), fontSize: 12 }}>Net cash flow for June</Text>
+              <Text style={{ color: token('colors.muted'), fontSize: 12 }}>Net cash flow for the statement period</Text>
               <Text style={{ color: token('colors.primary'), fontSize: 22, fontWeight: 700 }}>{formatCurrency(savingsPaise)}</Text>
-              {!validation.valid && (
+              {!reconciliation.valid && (
                 <Text style={{ padding: 10, border: `1px solid ${token('colors.warning')}`, borderRadius: 7, backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 11, lineHeight: 1.4 }}>
                   Statement needs review: {mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
                 </Text>

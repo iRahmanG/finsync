@@ -30,6 +30,9 @@ export function TransactionTable({
     statementPeriod: { start: '', end: '' },
     transactions: allTransactions,
   })
+  const sortedTransactions = [...transactions].sort((first, second) =>
+    first.date.localeCompare(second.date),
+  )
   const balanceById = new Map(
     runningBalances.map((balance) => [balance.transactionId, balance.balancePaise]),
   )
@@ -39,7 +42,7 @@ export function TransactionTable({
         <table>
           <thead><tr><th>Date</th><th>Description</th><th>Reference</th><th aria-label="Transaction type" /><th className="amount-column">Amount</th><th className="amount-column">Running balance</th></tr></thead>
           <tbody>
-            {transactions.map((transaction) => (
+            {sortedTransactions.map((transaction) => (
               <tr key={transaction.id}>
                 <td className="date-cell">{formatDate(transaction.date)}</td>
                 <td className="description-cell"><strong>{transaction.description}</strong><span>{transaction.type === 'CREDIT' ? 'Money received' : 'Payment made'}</span></td>
@@ -51,7 +54,13 @@ export function TransactionTable({
             ))}
           </tbody>
         </table>
-        {transactions.length === 0 && <p className="empty-state">No transactions match your search.</p>}
+        {transactions.length === 0 && (
+          <p className="empty-state">
+            {totalTransactions === 0
+              ? 'No transactions were recorded for this statement period.'
+              : 'No transactions match your search.'}
+          </p>
+        )}
       </div>
       <p className="table-footer">Showing {transactions.length} of {totalTransactions} transactions <span>•</span> All amounts in INR</p>
     </>

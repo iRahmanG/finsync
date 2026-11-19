@@ -157,6 +157,9 @@ export function validateStatement(statement: Statement): ValidationResult {
     if (!transaction.id) errors.push(`Transaction ${index + 1} is missing an ID`)
     if (ids.has(transaction.id)) errors.push(`Duplicate transaction ID: ${transaction.id}`)
     ids.add(transaction.id)
+    if (transaction.type !== 'CREDIT' && transaction.type !== 'DEBIT') {
+      errors.push(`Invalid transaction type for transaction ${transaction.id || index + 1}`)
+    }
     if (!isIntegerPaise(transaction.amountPaise)) {
       errors.push(`Invalid amount for transaction ${transaction.id || index + 1}`)
     }
@@ -206,4 +209,38 @@ export function maskAccountNumber(accountNumber: string): string {
 
   const lastFour = digits.slice(-4).join('')
   return `•••• ${lastFour}`
+}
+
+export function formatStatementPeriod(start: string, end: string): string {
+  const formatDate = (date: string) =>
+    new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(new Date(`${date}T00:00:00`))
+  return `${formatDate(start)} — ${formatDate(end)}`
+}
+
+export function formatDate(date: string): string {
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(`${date}T00:00:00`))
+}
+
+export function getReconciliation(statement: Statement): {
+  valid: boolean
+  expectedClosingBalancePaise: number
+  differencePaise: number
+} {
+  const totals = calculateTotals(statement.transactions)
+  const expectedClosingBalancePaise =
+    statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise
+  const differencePaise = statement.closingBalancePaise - expectedClosingBalancePaise
+  return {
+    valid: differencePaise === 0,
+    expectedClosingBalancePaise,
+    differencePaise,
+  }
 }
