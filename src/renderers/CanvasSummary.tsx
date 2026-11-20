@@ -11,11 +11,12 @@ void React
 interface CanvasSummaryProps {
   statement: Statement
   locale?: FinSyncLocale
+  brandName?: string
   logoUrl?: string
   logoAlt?: string
 }
 
-export function CanvasSummary({ statement, locale = 'en-IN' }: CanvasSummaryProps) {
+export function CanvasSummary({ statement, locale = 'en-IN', brandName = 'FinSync', logoUrl, logoAlt }: CanvasSummaryProps) {
   const [exportState, setExportState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [exportMessage, setExportMessage] = useState('')
 
@@ -23,7 +24,7 @@ export function CanvasSummary({ statement, locale = 'en-IN' }: CanvasSummaryProp
     setExportState('loading')
     setExportMessage('')
     try {
-      await exportPng(CanvasDocument({ statement }), statement)
+      await exportPng(CanvasDocument({ statement, locale, brandName }), statement)
       setExportState('success')
       setExportMessage('PNG download started.')
     } catch (error) {
@@ -42,13 +43,13 @@ export function CanvasSummary({ statement, locale = 'en-IN' }: CanvasSummaryProp
       </div>
       {exportMessage && <p className={exportState === 'error' ? 'export-message error' : 'export-message'} role={exportState === 'error' ? 'alert' : 'status'}>{exportMessage}</p>}
       <div className="canvas-artboard">
-        <CanvasPreview statement={statement} />
+        <CanvasPreview statement={statement} locale={locale} brandName={brandName} logoUrl={logoUrl} logoAlt={logoAlt} />
       </div>
     </div>
   )
 }
 
-function CanvasPreview({ statement }: CanvasSummaryProps) {
+function CanvasPreview({ statement, brandName = 'FinSync', logoUrl, logoAlt }: CanvasSummaryProps) {
   const totals = calculateTotals(statement.transactions)
   const categoryTotals = new Map<string, number>()
   statement.transactions
@@ -64,7 +65,7 @@ function CanvasPreview({ statement }: CanvasSummaryProps) {
   return (
     <div className="canvas-preview-card">
       <div className="canvas-artboard-header">
-        <div className="brand"><span className="brand-mark">F</span><span>finsync</span></div>
+        <div className="brand">{logoUrl ? <img className="brand-logo" src={logoUrl} alt={logoAlt || brandName} onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span className="brand-mark">{brandName[0]?.toUpperCase()}</span>}<span>{brandName}</span></div>
         <span>{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</span>
       </div>
       <div className="canvas-metrics">
@@ -93,7 +94,7 @@ function CanvasPreview({ statement }: CanvasSummaryProps) {
   )
 }
 
-export function CanvasDocument({ statement, locale = 'en-IN' }: CanvasSummaryProps) {
+export function CanvasDocument({ statement, locale = 'en-IN', brandName = 'FinSync' }: CanvasSummaryProps) {
   const totals = calculateTotals(statement.transactions)
   const categoryTotals = new Map<string, number>()
   statement.transactions
@@ -122,7 +123,7 @@ export function CanvasDocument({ statement, locale = 'en-IN' }: CanvasSummaryPro
           style={{ padding: 44, gap: 24, backgroundColor: '#F0F7F3', color: token('colors.ink'), fontFamily: 'FinSync Sans, Arial, sans-serif' }}
         >
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>finsync</Text>
+            <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>{brandName}</Text>
             <Text style={{ fontSize: 11, fontWeight: 700, color: token('colors.muted') }}>{statementPeriod}</Text>
           </Row>
           <Row style={{ gap: 14 }}>

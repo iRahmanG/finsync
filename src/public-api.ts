@@ -34,4 +34,9 @@ export interface FinSyncStatementProps {
   config?: FinSyncPresentationConfig
   initialView?: 'web' | 'email' | 'pdf' | 'canvas'
   onInvalidStatement?: (errors: string[]) => void
+  themePreset?: {
+    value: string
+    options: Array<{ value: string; label: string }>
+    onChange: (value: string) => void
+  }
 }

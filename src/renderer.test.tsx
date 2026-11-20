@@ -17,6 +17,8 @@ import { categoryFor } from './financial'
 import { createFinSyncTheme } from './theme'
 import { FinSyncStatement } from './FinSyncStatement'
 import React from 'react'
+import { statement as demoStatement } from './data/statement'
+import type { Statement } from './types'
 
 const fixtures = [
   ['normal', reconciledStatement],
@@ -28,6 +30,38 @@ const fixtures = [
 ] as const
 
 describe('cross-format renderer regressions', () => {
+  it('uses reconciled demo data and FinSync branding across renderers', () => {
+    expect(validateStatement(demoStatement).valid).toBe(true)
+
+    const email = StatementEmailDocument({ statement: demoStatement })
+    const pdf = PdfDocument({ statement: demoStatement, brandName: 'FinSync' })
+    const canvas = CanvasDocument({ statement: demoStatement, brandName: 'FinSync' })
+
+    expect(validate(email).valid).toBe(true)
+    expect(validate(pdf).valid).toBe(true)
+    expect(validate(canvas).valid).toBe(true)
+    expect(outline(pdf)).toContain('FinSync')
+    expect(outline(canvas)).toContain('FinSync')
+  })
+
+  it('does not bypass reconciliation through theme or presentation config', () => {
+    const mismatched: Statement = {
+      ...demoStatement,
+      closingBalancePaise: 24_787_500,
+    }
+    const element = React.createElement(FinSyncStatement, {
+      statement: mismatched,
+      config: {
+        brandName: 'FinSync',
+        locale: 'en-US',
+        theme: { primaryColor: '#7C3AED', borderRadius: 14 },
+      },
+    })
+
+    expect(element.props.statement).toBe(mismatched)
+    expect(validateStatement(mismatched).valid).toBe(false)
+  })
+
   for (const [name, statement] of fixtures) {
     it(`keeps ${name} statement values consistent`, async () => {
       const validation = validateStatement(statement)

@@ -1,4 +1,4 @@
-import { calculateRunningBalances, formatExportCurrency, formatDate, formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
+import { calculateRunningBalances, calculateTotals, formatExportCurrency, formatDate, formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
 import type { Statement } from '../types'
 import {
   Column,
@@ -23,13 +23,14 @@ interface PdfStatementProps {
   statement: Statement
   onClose?: () => void
   locale?: FinSyncLocale
+  brandName?: string
   logoUrl?: string
   logoAlt?: string
 }
 
-const ROWS_PER_PAGE = 5
+const ROWS_PER_PAGE = 10
 
-export function PdfStatement({ statement, onClose }: PdfStatementProps) {
+export function PdfStatement({ statement, onClose, locale = 'en-IN', brandName = 'FinSync', logoUrl, logoAlt }: PdfStatementProps) {
   const [exportState, setExportState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [exportMessage, setExportMessage] = useState('')
 
@@ -37,7 +38,7 @@ export function PdfStatement({ statement, onClose }: PdfStatementProps) {
     setExportState('loading')
     setExportMessage('')
     try {
-      await exportPdf(PdfDocument({ statement }), statement)
+      await exportPdf(PdfDocument({ statement, locale, brandName }), statement)
       setExportState('success')
       setExportMessage('PDF download started.')
     } catch (error) {
@@ -59,13 +60,13 @@ export function PdfStatement({ statement, onClose }: PdfStatementProps) {
       </div>
       {exportMessage && <p className={exportState === 'error' ? 'export-message error' : 'export-message'} role={exportState === 'error' ? 'alert' : 'status'}>{exportMessage}</p>}
       <div className="pdf-document">
-        <PdfPreview statement={statement} />
+        <PdfPreview statement={statement} locale={locale} brandName={brandName} logoUrl={logoUrl} logoAlt={logoAlt} />
       </div>
     </div>
   )
 }
 
-function PdfPreview({ statement }: { statement: Statement }) {
+function PdfPreview({ statement, brandName = 'FinSync', logoUrl, logoAlt }: PdfStatementProps) {
   const balances = calculateRunningBalances(statement)
   const chronologicalTransactions = [...statement.transactions].sort((first, second) =>
     first.date.localeCompare(second.date),
@@ -82,7 +83,7 @@ function PdfPreview({ statement }: { statement: Statement }) {
       {pages.map((page, pageIndex) => (
         <article className="pdf-page" key={pageIndex}>
           <header className="pdf-header">
-            <div className="brand"><span className="brand-mark">F</span><span>finsync</span></div>
+            <div className="brand">{logoUrl ? <img className="brand-logo" src={logoUrl} alt={logoAlt || brandName} onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span className="brand-mark">{brandName[0]?.toUpperCase()}</span>}<span>{brandName}</span></div>
             <div className="pdf-header-meta">
               <strong>ACCOUNT STATEMENT</strong>
               <span>{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</span>
@@ -136,8 +137,10 @@ function PdfPreview({ statement }: { statement: Statement }) {
   )
 }
 
-export function PdfDocument({ statement, locale = 'en-IN' }: { statement: Statement; locale?: FinSyncLocale }) {
+export function PdfDocument({ statement, locale = 'en-IN', brandName = 'FinSync' }: { statement: Statement; locale?: FinSyncLocale; brandName?: string }) {
   const balances = calculateRunningBalances(statement)
+  const totals = calculateTotals(statement.transactions)
+  const netCashFlowPaise = totals.totalCreditsPaise - totals.totalDebitsPaise
   const chronologicalTransactions = [...statement.transactions].sort((first, second) =>
     first.date.localeCompare(second.date),
   )
@@ -155,37 +158,50 @@ export function PdfDocument({ statement, locale = 'en-IN' }: { statement: Statem
   return (
     <Document
           theme={finsyncHyperTheme}
-              fonts={[{ family: 'FinSync Sans', src: '/fonts/FinSync-Regular.ttf', format: 'truetype', weight: 400 }]}
+          fonts={[{ family: 'FinSync Sans', src: '/fonts/FinSync-Regular.ttf', format: 'truetype', weight: 400 }]}
           size="A4"
-          margin={{ top: 48, right: 48, bottom: 48, left: 48 }}
-          title="FinSync account statement"
-          style={{ gap: 24, color: token('colors.ink'), fontFamily: 'FinSync Sans, Arial, sans-serif', backgroundColor: token('colors.surface') }}
+          margin={{ top: 36, right: 40, bottom: 36, left: 40 }}
+          title={`${brandName} account statement`}
+          style={{ gap: 12, color: token('colors.ink'), fontFamily: 'FinSync Sans, Arial, sans-serif', backgroundColor: token('colors.surface') }}
         >
           <PageHeader style={{ padding: { bottom: 16 }, border: { bottom: { width: 1, style: 'solid', color: '#E4E9E6' } } }}>
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>finsync</Text>
+              <Text style={{ fontSize: 16, fontWeight: 700, color: token('colors.primary') }}>{brandName}</Text>
               <Text style={{ fontSize: 10, color: token('colors.muted') }}>
                 {statementPeriod}
               </Text>
             </Row>
           </PageHeader>
           {documentPages.map((page, pageIndex) => (
-            <Document.Page key={pageIndex} style={{ gap: 18 }}>
+            <Document.Page key={pageIndex} style={{ gap: 10 }}>
               {pageIndex === 0 && (
-                <Row style={{ gap: 16, padding: { top: 12, bottom: 12 } }}>
-                  <Column style={{ flex: 1, gap: 4 }}>
-                    <Text style={{ fontSize: 9, color: token('colors.muted') }}>ACCOUNT HOLDER</Text>
-                    <Text style={{ fontSize: 12, fontWeight: 700 }}>{statement.accountHolder}</Text>
-                  </Column>
-                  <Column style={{ flex: 1, gap: 4 }}>
-                    <Text style={{ fontSize: 9, color: token('colors.muted') }}>ACCOUNT</Text>
-                    <Text style={{ fontSize: 12, fontWeight: 700 }}>{maskAccountNumber(statement.accountNumber)}</Text>
-                  </Column>
-                  <Column style={{ flex: 1, gap: 4 }}>
-                    <Text style={{ fontSize: 9, color: token('colors.muted') }}>TYPE</Text>
-                    <Text style={{ fontSize: 12, fontWeight: 700 }}>{statement.accountType}</Text>
-                  </Column>
-                </Row>
+                <>
+                  <Row style={{ gap: 12, padding: { top: 6, bottom: 6 } }}>
+                    <Column style={{ flex: 1.3, gap: 2 }}>
+                      <Text style={{ fontSize: 8, color: token('colors.muted') }}>ACCOUNT HOLDER</Text>
+                      <Text style={{ fontSize: 10, fontWeight: 700 }}>{statement.accountHolder}</Text>
+                    </Column>
+                    <Column style={{ flex: 1, gap: 2 }}>
+                      <Text style={{ fontSize: 8, color: token('colors.muted') }}>ACCOUNT</Text>
+                      <Text style={{ fontSize: 10, fontWeight: 700 }}>{maskAccountNumber(statement.accountNumber)}</Text>
+                    </Column>
+                    <Column style={{ flex: 1, gap: 2 }}>
+                      <Text style={{ fontSize: 8, color: token('colors.muted') }}>TYPE</Text>
+                      <Text style={{ fontSize: 10, fontWeight: 700 }}>{statement.accountType}</Text>
+                    </Column>
+                    <Column style={{ flex: 1.2, gap: 2 }}>
+                      <Text style={{ fontSize: 8, color: token('colors.muted') }}>STATEMENT PERIOD</Text>
+                      <Text style={{ fontSize: 9, fontWeight: 700 }}>{statementPeriod}</Text>
+                    </Column>
+                  </Row>
+                  <Row style={{ gap: 8 }}>
+                    <PdfSummaryCell label="Opening balance" value={formatExportCurrency(statement.openingBalancePaise)} />
+                    <PdfSummaryCell label="Closing balance" value={formatExportCurrency(statement.closingBalancePaise)} />
+                    <PdfSummaryCell label="Total credits" value={formatExportCurrency(totals.totalCreditsPaise)} />
+                    <PdfSummaryCell label="Total debits" value={formatExportCurrency(totals.totalDebitsPaise)} />
+                    <PdfSummaryCell label="Net cash flow" value={formatExportCurrency(netCashFlowPaise)} />
+                  </Row>
+                </>
               )}
               <Table style={{ width: '100%', fontSize: 9, border: { width: 1, style: 'solid', color: '#E4E9E6' }, cellPadding: [10, 6] }}>
                 <TableRow header>
@@ -228,6 +244,15 @@ export function PdfDocument({ statement, locale = 'en-IN' }: { statement: Statem
             </Row>
           </PageFooter>
     </Document>
+  )
+}
+
+function PdfSummaryCell({ label, value }: { label: string; value: string }) {
+  return (
+    <Column style={{ flex: 1, gap: 3, padding: 8, border: { width: 1, style: 'solid', color: '#E4E9E6' }, borderRadius: 6, backgroundColor: '#F7F9F8' }}>
+      <Text style={{ fontSize: 7, color: '#667085' }}>{label}</Text>
+      <Text style={{ fontSize: 9, fontWeight: 700 }}>{value}</Text>
+    </Column>
   )
 }
 

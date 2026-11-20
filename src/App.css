@@ -23,19 +23,20 @@
 * { box-sizing: border-box; }
 body { background: #fbfcfb; color: var(--ink); font-family: 'DM Sans', sans-serif; }
 body { overflow-x: hidden; }
-.theme-preset { position: fixed; z-index: 20; top: 14px; right: 170px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; }
+.theme-preset { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; margin-left: 24px; color: var(--muted); font-size: 11px; }
 .theme-preset select { padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--ink); background: white; }
 button, input { font: inherit; }
 button { cursor: pointer; }
 .app-shell { min-height: 100vh; }
-.topbar { height: 76px; padding: 0 6.5%; display: flex; align-items: center; border-bottom: 1px solid var(--line); background: white; }
+.topbar { height: 76px; padding: 0 6.5%; display: grid; grid-template-columns: auto minmax(180px, 1fr) auto auto; align-items: center; gap: 24px; border-bottom: 1px solid var(--line); background: white; }
 .brand { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: -.5px; text-decoration: none; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; color: white; background: var(--green); border-radius: 9px 9px 9px 2px; font-size: 17px; }
 .brand-logo { width: 32px; height: 32px; object-fit: contain; }
-.topnav { display: flex; gap: 34px; margin-left: 78px; height: 100%; }
+.topnav { display: flex; gap: 34px; height: 100%; justify-content: center; }
 .topnav a, .nav-view { display: flex; align-items: center; color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; border: 0; border-bottom: 2px solid transparent; background: transparent; }
 .topnav a.active, .topnav a:hover, .nav-view.active, .nav-view:hover { color: var(--green-dark); border-bottom-color: var(--green); }
-.profile { display: flex; align-items: center; gap: 10px; margin-left: auto; font-size: 13px; font-weight: 600; }
+.profile { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 220px; font-size: 13px; font-weight: 600; }
+.profile-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: var(--green-dark); background: #d7eee4; font-size: 11px; }
 .icon-button { border: 0; color: var(--muted); background: transparent; font-size: 17px; }
 .main-content { max-width: 1140px; margin: 0 auto; padding: 54px 30px 76px; }
@@ -185,8 +186,11 @@ td { padding: 17px 22px; border-top: 1px solid var(--line); }
 footer { display: flex; justify-content: space-between; padding: 18px 6.5%; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
 footer a { color: var(--green); text-decoration: none; }
 @media (max-width: 760px) {
-  .topbar { height: auto; min-height: 76px; padding: 12px 18px; flex-wrap: wrap; gap: 10px; }
-  .topnav { width: 100%; order: 3; height: 44px; gap: 10px; margin: 0; overflow-x: auto; }
+  .topbar { height: auto; min-height: 76px; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto 44px; padding: 12px 18px; gap: 8px 12px; }
+  .topnav { grid-column: 1 / -1; grid-row: 2; width: 100%; height: 44px; justify-content: start; gap: 10px; margin: 0; overflow-x: auto; }
+  .theme-preset { grid-column: 2; grid-row: 1; justify-self: end; margin-left: 0; }
+  .theme-preset > span { display: none; }
+  .profile { grid-column: 3; grid-row: 1; max-width: 64px; }
   .topnav a { flex: 0 0 auto; }
   .nav-view { flex: 0 0 auto; padding: 0 4px; }
   .profile { max-width: 64px; }
@@ -221,7 +225,9 @@ footer a { color: var(--green); text-decoration: none; }
   .summary-grid { grid-template-columns: repeat(2, 1fr); }
   .account-card { grid-template-columns: 1fr 1fr; }
   .period-block { grid-column: 1 / -1; }
-  .topnav { gap: 18px; margin-left: 35px; }
+  .topbar { grid-template-columns: auto minmax(180px, 1fr) auto auto; gap: 14px; padding-inline: 4%; }
+  .topnav { gap: 18px; }
+  .theme-preset { margin-left: 8px; }
 }
 
 @page { size: A4; margin: 0; }

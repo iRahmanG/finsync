@@ -8,17 +8,18 @@ function App() {
 
   return (
     <div>
-      <label className="theme-preset no-print">
-        Theme
-        <select value={themeName} onChange={(event) => setThemeName(event.target.value as 'fintech' | 'violet')}>
-          <option value="fintech">Fintech default</option>
-          <option value="violet">Violet custom</option>
-        </select>
-      </label>
       <FinSyncStatement
         statement={statement}
+        themePreset={{
+          value: themeName,
+          options: [
+            { value: 'fintech', label: 'Fintech default' },
+            { value: 'violet', label: 'Violet custom' },
+          ],
+          onChange: (value) => setThemeName(value as 'fintech' | 'violet'),
+        }}
         config={violetTheme ? {
-          brandName: 'Northstar',
+          brandName: 'FinSync',
           locale: 'en-US',
           theme: {
             primaryColor: '#7C3AED',
@@ -30,7 +31,7 @@ function App() {
             borderRadius: 14,
             spacingScale: 1.05,
           },
-        } : { locale: 'en-IN' }}
+        } : { brandName: 'FinSync', locale: 'en-IN' }}
       />
     </div>
   )

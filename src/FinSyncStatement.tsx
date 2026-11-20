@@ -17,6 +17,7 @@ export function FinSyncStatement({
   config,
   initialView = 'web',
   onInvalidStatement,
+  themePreset,
 }: FinSyncStatementProps) {
   const [view, setView] = useState(initialView)
   const [query, setQuery] = useState('')
@@ -111,6 +112,20 @@ export function FinSyncStatement({
             </button>
           ))}
         </nav>
+        {themePreset && (
+          <label className="theme-preset no-print">
+            <span>Theme</span>
+            <select
+              value={themePreset.value}
+              onChange={(event) => themePreset.onChange(event.target.value)}
+              aria-label="Theme preset"
+            >
+              {themePreset.options.map((option) => (
+                <option value={option.value} key={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="profile">
           <span className="avatar">{profileInitials}</span>
           <span className="profile-name">{statement.accountHolder}</span>
@@ -118,11 +133,11 @@ export function FinSyncStatement({
       </header>
 
       {view === 'canvas' ? (
-        <main className="main-content canvas-page"><CanvasSummary statement={statementForDisplay} locale={locale} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} /></main>
+        <main className="main-content canvas-page"><CanvasSummary statement={statementForDisplay} locale={locale} brandName={brandName} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} /></main>
       ) : view === 'pdf' ? (
-        <main className="main-content pdf-page-container"><PdfStatement statement={statementForDisplay} locale={locale} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} onClose={() => setView('web')} /></main>
+        <main className="main-content pdf-page-container"><PdfStatement statement={statementForDisplay} locale={locale} brandName={brandName} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} onClose={() => setView('web')} /></main>
       ) : view === 'email' ? (
-        <main className="main-content email-page"><StatementEmail statement={statementForDisplay} locale={locale} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} /></main>
+        <main className="main-content email-page"><StatementEmail statement={statementForDisplay} locale={locale} brandName={brandName} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} /></main>
       ) : (
         <main className="main-content" id="statement">
           <StatementHeader statement={statementForDisplay} locale={locale} onDownload={() => window.print()} />

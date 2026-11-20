@@ -13,6 +13,7 @@ import {
   validateStatement,
 } from './financial'
 import type { Statement } from './types'
+import { statement as demoStatement } from './data/statement'
 
 const validStatement: Statement = {
   accountHolder: 'Aarav Mehta',
@@ -29,6 +30,30 @@ const validStatement: Statement = {
 }
 
 describe('financial calculations', () => {
+  it('keeps the default demonstration statement reconciled', () => {
+    const totals = calculateTotals(demoStatement.transactions)
+    const reconciliation = getReconciliation(demoStatement)
+
+    expect(demoStatement.openingBalancePaise).toBe(18_245_000)
+    expect(totals.totalCreditsPaise).toBe(9_762_500)
+    expect(totals.totalDebitsPaise).toBe(3_539_150)
+    expect(demoStatement.closingBalancePaise).toBe(24_468_350)
+    expect(totals.totalCreditsPaise - totals.totalDebitsPaise).toBe(6_223_350)
+    expect(reconciliation.expectedClosingBalancePaise).toBe(24_468_350)
+    expect(reconciliation.valid).toBe(true)
+  })
+
+  it('still detects an intentionally incorrect supplied closing balance', () => {
+    const mismatched: Statement = {
+      ...demoStatement,
+      closingBalancePaise: 24_787_500,
+    }
+    const reconciliation = getReconciliation(mismatched)
+    expect(reconciliation.valid).toBe(false)
+    expect(reconciliation.expectedClosingBalancePaise).toBe(24_468_350)
+    expect(reconciliation.differencePaise).toBe(319_150)
+  })
+
   it('calculates integer paise totals and running balances', () => {
     expect(calculateTotals(validStatement.transactions)).toEqual({
       totalCreditsPaise: 350_000,

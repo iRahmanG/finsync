@@ -7,7 +7,7 @@ export const statement: Statement = {
   currency: 'INR',
   statementPeriod: { start: '2024-06-01', end: '2024-06-30' },
   openingBalancePaise: 18245000,
-  closingBalancePaise: 24787500,
+  closingBalancePaise: 24468350,
   transactions: [
     { id: 'txn-01', date: '2024-06-28', description: 'Salary credit', reference: 'SAL/JUN/2024', type: 'CREDIT', amountPaise: 8500000 },
     { id: 'txn-02', date: '2024-06-26', description: 'Rent payment', reference: 'UPI/RENT/0624', type: 'DEBIT', amountPaise: 2800000 },

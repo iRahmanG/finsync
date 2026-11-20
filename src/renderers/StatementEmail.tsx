@@ -8,6 +8,7 @@ interface StatementEmailProps {
   statement: Statement
   statementUrl?: string
   locale?: FinSyncLocale
+  brandName?: string
   logoUrl?: string
   logoAlt?: string
 }
@@ -79,7 +80,7 @@ export function StatementEmailDocument({ statement, statementUrl = '#statement',
   )
 }
 
-export function StatementEmail({ statement, statementUrl = '#statement', locale = 'en-IN', logoUrl, logoAlt }: StatementEmailProps) {
+export function StatementEmail({ statement, statementUrl = '#statement', locale = 'en-IN', brandName = 'FinSync', logoUrl, logoAlt }: StatementEmailProps) {
   const totals = calculateTotals(statement.transactions)
   const maskedAccount = maskAccountNumber(statement.accountNumber)
   const reconciliation = getReconciliation(statement)
@@ -92,7 +93,7 @@ export function StatementEmail({ statement, statementUrl = '#statement', locale 
 
   return (
     <article className="email-renderer">
-      <div className="email-brand">{logoUrl ? <img src={logoUrl} alt={logoAlt || 'FinSync'} onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span className="brand-mark">F</span>}<strong>finsync</strong></div>
+      <div className="email-brand">{logoUrl ? <img src={logoUrl} alt={logoAlt || brandName} onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span className="brand-mark">{brandName[0]?.toUpperCase()}</span>}<strong>{brandName}</strong></div>
       <p className="eyebrow">MONTHLY STATEMENT</p>
       <h1>Your account statement is ready</h1>
       <p className="email-copy">Hi {statement.accountHolder.split(' ')[0]}, your {statement.accountType.toLowerCase()} statement is ready to review.</p>
