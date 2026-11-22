@@ -1,4 +1,18 @@
-const EXPORT_SERVER_URL = 'http://127.0.0.1:4174'
+function getExportServerUrl(): string {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      if (import.meta.env.VITE_EXPORT_SERVER_URL) {
+        return String(import.meta.env.VITE_EXPORT_SERVER_URL)
+      }
+      if (import.meta.env.DEV) {
+        return 'http://127.0.0.1:4174'
+      }
+    }
+  } catch {}
+  return ''
+}
+
+const EXPORT_SERVER_URL = getExportServerUrl()
 
 export function statementFilename(statementPeriod: { start: string; end: string }, extension: 'pdf' | 'png'): string {
   const start = statementPeriod.start.replaceAll('-', '')

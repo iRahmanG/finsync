@@ -9,6 +9,7 @@
     "export": "tsx server/export-server.ts",
     "export-server": "tsx server/export-server.ts",
     "build": "tsc -b && vite build",
+    "start": "tsx server/export-server.ts",
     "lint": "oxlint",
     "test": "vitest run",
     "preview": "vite preview"
