@@ -2,15 +2,9 @@ import { useMemo, useState, type CSSProperties } from 'react'
 import './App.css'
 import type { FinSyncStatementProps } from './public-api'
 import type { Transaction } from './types'
-import { validateStatement, formatCurrency, getReconciliation } from './financial'
+import { validateStatement } from './financial'
 import { maskAccountNumber } from './financial'
-import {
-  AccountDetails,
-  MonthlyFinancialSummary,
-  StatementHeader,
-  TransactionTable,
-} from './components'
-import { PdfStatement, StatementEmail, CanvasSummary } from './renderers'
+import { PdfStatement, StatementEmail, CanvasSummary, StatementPagePreview } from './renderers'
 
 export function FinSyncStatement({
   statement,
@@ -33,7 +27,6 @@ export function FinSyncStatement({
     onInvalidStatement?.(validation.errors)
   }
 
-  const reconciliation = getReconciliation(statement)
   const brandName = config?.brandName?.trim() || 'FinSync'
   const locale = config?.locale ?? 'en-IN'
   const statementForDisplay = {
@@ -133,33 +126,26 @@ export function FinSyncStatement({
       </header>
 
       {view === 'canvas' ? (
-        <main className="main-content canvas-page"><CanvasSummary statement={statementForDisplay} locale={locale} brandName={brandName} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} /></main>
+        <main className="main-content canvas-page"><CanvasSummary statement={statementForDisplay} locale={locale} brandName={brandName} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} rendererConfig={{ brandName, locale, logoUrl: config?.logoUrl, logoAlt: config?.logoAlt, theme: themeOverrides, optionalSections }} /></main>
       ) : view === 'pdf' ? (
-        <main className="main-content pdf-page-container"><PdfStatement statement={statementForDisplay} locale={locale} brandName={brandName} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} onClose={() => setView('web')} /></main>
+        <main className="main-content pdf-page-container"><PdfStatement statement={statementForDisplay} locale={locale} brandName={brandName} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} rendererConfig={{ brandName, locale, logoUrl: config?.logoUrl, logoAlt: config?.logoAlt, theme: themeOverrides, optionalSections }} onClose={() => setView('web')} /></main>
       ) : view === 'email' ? (
-        <main className="main-content email-page"><StatementEmail statement={statementForDisplay} locale={locale} brandName={brandName} logoUrl={config?.logoUrl} logoAlt={config?.logoAlt} /></main>
+        <main className="main-content email-page">
+          <StatementEmail
+            statement={statementForDisplay}
+            statementUrl="#statement"
+            rendererConfig={{
+              brandName,
+              locale,
+              logoUrl: config?.logoUrl,
+              logoAlt: config?.logoAlt,
+              theme: themeOverrides,
+              optionalSections,
+            }}
+          />
+        </main>
       ) : (
         <main className="main-content" id="statement">
-          <StatementHeader statement={statementForDisplay} locale={locale} onDownload={() => window.print()} />
-          {!validation.valid && (
-            <aside className="validation-banner" role="alert">
-              <strong>Statement needs review</strong>
-              <span>
-                Calculated closing balance is {formatCurrency(reconciliation.expectedClosingBalancePaise, locale)};
-                {' '}supplied balance is {formatCurrency(statement.closingBalancePaise)}
-                {' '}({reconciliation.differencePaise > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(reconciliation.differencePaise))}).
-              </span>
-            </aside>
-          )}
-          {optionalSections?.accountDetails !== false && <AccountDetails statement={statementForDisplay} locale={locale} />}
-          {optionalSections?.financialSummary !== false && (
-            <MonthlyFinancialSummary
-              transactions={statement.transactions}
-              openingBalancePaise={statement.openingBalancePaise}
-              closingBalancePaise={statement.closingBalancePaise}
-              locale={locale}
-            />
-          )}
           {optionalSections?.transactions !== false && (
             <section className="transactions-section">
               <div className="section-heading">
@@ -179,15 +165,20 @@ export function FinSyncStatement({
                   </div>
                 </div>
               </div>
-              <TransactionTable
-                transactions={filteredTransactions}
-                totalTransactions={statement.transactions.length}
-                openingBalancePaise={statement.openingBalancePaise}
-                allTransactions={statement.transactions}
-                locale={locale}
-              />
             </section>
           )}
+          <StatementPagePreview
+            statement={statementForDisplay}
+            transactions={filteredTransactions}
+            rendererConfig={{
+              brandName,
+              locale,
+              logoUrl: config?.logoUrl,
+              logoAlt: config?.logoAlt,
+              theme: themeOverrides,
+              optionalSections,
+            }}
+          />
         </main>
       )}
       <footer><span>© {statementYear} {brandName}</span><span>Synthetic statement template · Confidential</span></footer>

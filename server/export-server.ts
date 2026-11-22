@@ -6,12 +6,11 @@ import { renderPdf } from '@hyper-elements/react/pdf'
 import { renderImage } from '@hyper-elements/react/image'
 import { PdfDocument } from '../src/renderers/PdfStatement'
 import { CanvasDocument } from '../src/renderers/CanvasSummary'
-import type { Statement } from '../src/types'
+import { parseExportRequestJson, validateExportRequest } from './export-validation'
 
 const port = Number(process.env.EXPORT_PORT ?? 4174)
 const root = process.cwd()
-const regularFontPath = path.join(root, 'public', 'fonts', 'FinSync-Regular.ttf')
-const boldFontPath = path.join(root, 'public', 'fonts', 'FinSync-Bold.ttf')
+const notoFontPath = path.join(root, 'public', 'fonts', 'NotoSans-Regular.ttf')
 
 const sendJson = (response: http.ServerResponse, status: number, body: unknown) => {
   response.writeHead(status, {
@@ -39,16 +38,37 @@ const server = http.createServer(async (request, response) => {
   try {
     let body = ''
     for await (const chunk of request) body += chunk.toString()
-    const statement = JSON.parse(body) as Statement
-    const regularFontBytes = await fs.readFile(regularFontPath)
-    const boldFontBytes = await fs.readFile(boldFontPath)
-    const fonts = [
-      { family: 'FinSync Sans', src: regularFontBytes.buffer.slice(regularFontBytes.byteOffset, regularFontBytes.byteOffset + regularFontBytes.byteLength), weight: 400 },
-      { family: 'FinSync Sans', src: boldFontBytes.buffer.slice(boldFontBytes.byteOffset, boldFontBytes.byteOffset + boldFontBytes.byteLength), weight: 700 },
+    const parsedRequest = parseExportRequestJson(body)
+    if (!parsedRequest.ok) {
+      sendJson(response, 400, { error: 'Malformed JSON request.' })
+      return
+    }
+    const requestBody = parsedRequest.value
+    const validatedRequest = validateExportRequest(requestBody)
+    if (!validatedRequest) {
+      sendJson(response, 400, { error: 'Invalid export request.' })
+      return
+    }
+    const { statement, rendererConfig } = validatedRequest
+    const notoFontBytes = await fs.readFile(notoFontPath)
+    const fonts: Array<{ family: string; src: ArrayBuffer; weight: number }> = [
+      { family: 'Noto Sans', src: notoFontBytes.buffer.slice(notoFontBytes.byteOffset, notoFontBytes.byteOffset + notoFontBytes.byteLength), weight: 400 },
+      { family: 'Noto Sans', src: notoFontBytes.buffer.slice(notoFontBytes.byteOffset, notoFontBytes.byteOffset + notoFontBytes.byteLength), weight: 700 },
     ]
+    let resolvedRendererConfig = rendererConfig
+    let images: Record<string, Uint8Array> | undefined
+    if (rendererConfig?.logoUrl) {
+      const logoPath = path.join(root, 'public', rendererConfig.logoUrl.slice(1))
+      try {
+        await fs.stat(logoPath)
+        images = { [rendererConfig.logoUrl]: await fs.readFile(logoPath) }
+      } catch {
+        resolvedRendererConfig = { ...rendererConfig, logoUrl: undefined }
+      }
+    }
 
     if (request.url === '/api/export/pdf') {
-      const result = await renderPdf(React.createElement(PdfDocument, { statement }), { fonts })
+      const result = await renderPdf(React.createElement(PdfDocument, { statement, rendererConfig: resolvedRendererConfig }), { fonts, images })
       response.writeHead(200, {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="finsync-statement-${statement.statementPeriod.start}-${statement.statementPeriod.end}.pdf"`,
@@ -58,8 +78,9 @@ const server = http.createServer(async (request, response) => {
       return
     }
 
-    const result = await renderImage(React.createElement(CanvasDocument, { statement }), {
+    const result = await renderImage(React.createElement(CanvasDocument, { statement, rendererConfig: resolvedRendererConfig }), {
       fonts,
+      images,
       format: 'png',
       scale: 2,
       strict: true,
@@ -70,10 +91,8 @@ const server = http.createServer(async (request, response) => {
       'Access-Control-Allow-Origin': 'http://127.0.0.1:5173',
     })
     response.end(Buffer.from(result.image))
-  } catch (error) {
-    sendJson(response, 500, {
-      error: error instanceof Error ? error.message : 'Export failed.',
-    })
+  } catch {
+    sendJson(response, 500, { error: 'Export failed.' })
   }
 })
 

@@ -1,12 +1,13 @@
-import { calculateTotals, categoryFor, formatCurrency, formatExportCurrency, formatStatementPeriod, getReconciliation } from '../financial'
+import { calculateTotals, categoryFor, formatExportCurrency, formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
 import type { Statement } from '../types'
-import { Canvas, Column, Divider, Heading, Row, Text } from '@hyper-elements/react'
-import { finsyncHyperTheme, token } from '../theme'
+import { Canvas, Column, Divider, Heading, Image, Row, Text } from '@hyper-elements/react'
+import { createFinSyncTheme, token } from '../theme'
 import { exportPng } from '../export'
 import { useState } from 'react'
-import type { FinSyncLocale } from '../public-api'
+import type { FinSyncLocale, FinSyncRendererConfig } from '../public-api'
 import * as React from 'react'
 void React
+import { HyperPreview } from './HyperPreview'
 
 interface CanvasSummaryProps {
   statement: Statement
@@ -14,9 +15,10 @@ interface CanvasSummaryProps {
   brandName?: string
   logoUrl?: string
   logoAlt?: string
+  rendererConfig?: FinSyncRendererConfig
 }
 
-export function CanvasSummary({ statement, locale = 'en-IN', brandName = 'FinSync', logoUrl, logoAlt }: CanvasSummaryProps) {
+export function CanvasSummary({ statement, locale = 'en-IN', brandName = 'FinSync', logoUrl, logoAlt, rendererConfig }: CanvasSummaryProps) {
   const [exportState, setExportState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [exportMessage, setExportMessage] = useState('')
 
@@ -24,7 +26,7 @@ export function CanvasSummary({ statement, locale = 'en-IN', brandName = 'FinSyn
     setExportState('loading')
     setExportMessage('')
     try {
-      await exportPng(CanvasDocument({ statement, locale, brandName }), statement)
+      await exportPng(CanvasDocument({ statement, rendererConfig: rendererConfig ?? { brandName, locale } }), statement, rendererConfig)
       setExportState('success')
       setExportMessage('PNG download started.')
     } catch (error) {
@@ -43,58 +45,20 @@ export function CanvasSummary({ statement, locale = 'en-IN', brandName = 'FinSyn
       </div>
       {exportMessage && <p className={exportState === 'error' ? 'export-message error' : 'export-message'} role={exportState === 'error' ? 'alert' : 'status'}>{exportMessage}</p>}
       <div className="canvas-artboard">
-        <CanvasPreview statement={statement} locale={locale} brandName={brandName} logoUrl={logoUrl} logoAlt={logoAlt} />
+        <HyperPreview
+          title="Generated canvas preview"
+          element={CanvasDocument({ statement, rendererConfig: rendererConfig ?? { brandName, locale, logoUrl, logoAlt } })}
+        />
       </div>
     </div>
   )
 }
 
-function CanvasPreview({ statement, brandName = 'FinSync', logoUrl, logoAlt }: CanvasSummaryProps) {
-  const totals = calculateTotals(statement.transactions)
-  const categoryTotals = new Map<string, number>()
-  statement.transactions
-    .filter(({ type }) => type === 'DEBIT')
-    .forEach((transaction) => {
-      const category = categoryFor(transaction.description)
-      categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + transaction.amountPaise)
-    })
-  const categories = [...categoryTotals.entries()].sort(([, first], [, second]) => second - first)
-  const reconciliation = getReconciliation(statement)
-  const netCashFlowPaise = totals.totalCreditsPaise - totals.totalDebitsPaise
-
-  return (
-    <div className="canvas-preview-card">
-      <div className="canvas-artboard-header">
-        <div className="brand">{logoUrl ? <img className="brand-logo" src={logoUrl} alt={logoAlt || brandName} onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span className="brand-mark">{brandName[0]?.toUpperCase()}</span>}<span>{brandName}</span></div>
-        <span>{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</span>
-      </div>
-      <div className="canvas-metrics">
-        <div className="canvas-metric income"><span>Income</span><strong>{formatExportCurrency(totals.totalCreditsPaise)}</strong></div>
-        <div className="canvas-metric expense"><span>Expenses</span><strong>{formatExportCurrency(totals.totalDebitsPaise)}</strong></div>
-        <div className="canvas-metric balance"><span>Net cash flow</span><strong>{formatExportCurrency(netCashFlowPaise)}</strong></div>
-      </div>
-      <div className="canvas-chart">
-        <div className="category-list">
-          <h2>Estimated spending breakdown</h2>
-          {categories.length === 0 ? (
-            <p className="muted">No debit transactions in this period.</p>
-          ) : categories.map(([category, amount], index) => (
-            <div className="category-row" key={category}>
-              <div><span className={`category-dot category-${index}`} /><strong>{category}</strong><span>{Math.round((amount / totals.totalDebitsPaise) * 100)}%</span></div>
-              <div className="category-bar"><i style={{ width: `${Math.round((amount / totals.totalDebitsPaise) * 100)}%` }} /></div>
-              <small>{formatCurrency(amount)}</small>
-            </div>
-          ))}
-        </div>
-      </div>
-      {!reconciliation.valid && (
-        <div className="canvas-insight"><span aria-hidden="true">!</span><p><strong>Statement needs review.</strong> Closing balance differs from the calculated balance.</p></div>
-      )}
-    </div>
-  )
-}
-
-export function CanvasDocument({ statement, locale = 'en-IN', brandName = 'FinSync' }: CanvasSummaryProps) {
+export function CanvasDocument({ statement, locale = 'en-IN', brandName = 'FinSync', rendererConfig }: CanvasSummaryProps) {
+  const resolvedConfig = rendererConfig ?? { brandName, locale }
+  const resolvedLocale = resolvedConfig.locale
+  const resolvedBrandName = resolvedConfig.brandName
+  const optionalSections = resolvedConfig.optionalSections
   const totals = calculateTotals(statement.transactions)
   const categoryTotals = new Map<string, number>()
   statement.transactions
@@ -110,62 +74,67 @@ export function CanvasDocument({ statement, locale = 'en-IN', brandName = 'FinSy
   const statementPeriod = formatStatementPeriod(
     statement.statementPeriod.start,
     statement.statementPeriod.end,
-    locale,
+    resolvedLocale,
   )
 
   return (
     <Canvas
-          theme={finsyncHyperTheme}
-          fonts={[{ family: 'FinSync Sans', src: '/fonts/FinSync-Regular.ttf', format: 'truetype', weight: 400 }]}
+          theme={createFinSyncTheme(resolvedConfig.theme)}
+          fonts={[{ family: 'Noto Sans', src: '/fonts/NotoSans-Regular.ttf', format: 'truetype', weight: 400 }]}
           width={1200}
           height={630}
-          title="FinSync financial summary"
-          style={{ padding: 44, gap: 24, backgroundColor: '#F0F7F3', color: token('colors.ink'), fontFamily: 'FinSync Sans, Arial, sans-serif' }}
+          title={`${resolvedBrandName} financial summary`}
+          style={{ padding: token('spacing.xl'), gap: token('spacing.lg'), backgroundColor: token('colors.surfaceSubtle'), color: token('colors.ink'), fontFamily: 'Noto Sans, Arial, sans-serif' }}
         >
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>{brandName}</Text>
-            <Text style={{ fontSize: 11, fontWeight: 700, color: token('colors.muted') }}>{statementPeriod}</Text>
+            <Row style={{ gap: 8, alignItems: 'center' }}>
+              {resolvedConfig.logoUrl && <Image src={resolvedConfig.logoUrl} alt={resolvedConfig.logoAlt || `${resolvedBrandName} logo`} style={{ width: 28, height: 28 }} />}
+              <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>{resolvedBrandName}</Text>
+            </Row>
+            {optionalSections?.accountDetails !== false
+              ? <Text style={{ fontSize: 11, fontWeight: 700, color: token('colors.muted') }}>{maskAccountNumber(statement.accountNumber)} · {statementPeriod}</Text>
+              : <Text style={{ fontSize: 11, fontWeight: 700, color: token('colors.muted') }}>{statementPeriod}</Text>}
           </Row>
-          <Row style={{ gap: 14 }}>
-            <Metric label="Income" value={formatExportCurrency(totals.totalCreditsPaise)} />
-            <Metric label="Expenses" value={formatExportCurrency(totals.totalDebitsPaise)} />
-            <Metric label="Net cash flow" value={formatExportCurrency(savingsPaise)} />
-          </Row>
-          <Divider style={{ borderTop: { width: 1, style: 'solid', color: '#E4E9E6' } }} />
-          <Row style={{ gap: 24 }}>
-            <Column style={{ flex: 1, gap: 12, padding: 18, backgroundColor: token('colors.surface'), borderRadius: 9 }}>
+          {optionalSections?.financialSummary !== false && <Row style={{ gap: token('spacing.sm') }}>
+            <Metric label="Income" value={formatExportCurrency(totals.totalCreditsPaise, resolvedLocale)} />
+            <Metric label="Expenses" value={formatExportCurrency(totals.totalDebitsPaise, resolvedLocale)} />
+            <Metric label="Net cash flow" value={formatExportCurrency(savingsPaise, resolvedLocale)} />
+          </Row>}
+          {optionalSections?.transactions !== false && <Divider style={{ borderTop: { width: 1, style: 'solid', color: token('colors.line') } }} />}
+          {optionalSections?.transactions !== false && <Row style={{ gap: token('spacing.lg') }}>
+            <Column style={{ flex: 1, gap: token('spacing.sm'), padding: token('spacing.md'), backgroundColor: token('colors.surface'), borderRadius: token('radii.md') }}>
               <Heading level={2} style={{ fontSize: 17 }}>Estimated spending breakdown</Heading>
               {categories.length === 0 ? (
                 <Text style={{ color: token('colors.muted'), fontSize: 12 }}>No debit transactions in this period.</Text>
               ) : categories.map(([category, amount]) => (
-                <CategoryRow key={category} category={category} amountPaise={amount} totalPaise={totals.totalDebitsPaise} />
+                <CategoryRow key={category} category={category} amountPaise={amount} totalPaise={totals.totalDebitsPaise} locale={resolvedLocale} />
               ))}
             </Column>
-            <Column style={{ flex: 1, gap: 10, padding: 18, backgroundColor: token('colors.primarySoft'), borderRadius: 9 }}>
+            <Column style={{ flex: 1, gap: token('spacing.sm'), padding: token('spacing.md'), backgroundColor: token('colors.primarySoft'), borderRadius: token('radii.md') }}>
               <Heading level={2} style={{ fontSize: 17 }}>Monthly summary</Heading>
               <Text style={{ color: token('colors.muted'), fontSize: 12 }}>Net cash flow for the statement period</Text>
-              <Text style={{ color: token('colors.primary'), fontSize: 22, fontWeight: 700 }}>{formatExportCurrency(savingsPaise)}</Text>
+              <Text style={{ color: token('colors.primary'), fontSize: 22, fontWeight: 700 }}>{formatExportCurrency(savingsPaise, resolvedLocale)}</Text>
               {!reconciliation.valid && (
-                <Text style={{ padding: 10, border: { width: 1, style: 'solid', color: '#9A6700' }, borderRadius: 7, backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 11, lineHeight: 1.4 }}>
-                  Statement needs review: {mismatch > 0 ? 'over' : 'under'} by {formatExportCurrency(Math.abs(mismatch))}.
+                <Text style={{ padding: 10, border: { width: 1, style: 'solid', color: token('colors.warning') }, borderRadius: token('radii.sm'), backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 11, lineHeight: 1.4 }}>
+                  Statement needs review: {mismatch > 0 ? 'over' : 'under'} by {formatExportCurrency(Math.abs(mismatch), resolvedLocale)}.
                 </Text>
               )}
             </Column>
-          </Row>
+          </Row>}
     </Canvas>
   )
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <Column style={{ flex: 1, gap: 8, padding: 18, backgroundColor: token('colors.surface'), border: { width: 1, style: 'solid', color: '#E4E9E6' }, borderRadius: 9 }}>
+    <Column style={{ flex: 1, gap: token('spacing.sm'), padding: token('spacing.md'), backgroundColor: token('colors.surface'), border: { width: 1, style: 'solid', color: token('colors.line') }, borderRadius: token('radii.md') }}>
       <Text style={{ fontSize: 11, color: token('colors.muted') }}>{label}</Text>
       <Text style={{ fontSize: 22, fontWeight: 700 }}>{value}</Text>
     </Column>
   )
 }
 
-function CategoryRow({ category, amountPaise, totalPaise }: { category: string; amountPaise: number; totalPaise: number }) {
+function CategoryRow({ category, amountPaise, totalPaise, locale }: { category: string; amountPaise: number; totalPaise: number; locale: FinSyncLocale }) {
   const percentage = Math.round((amountPaise / totalPaise) * 100)
   return (
     <Column style={{ gap: 5 }}>
@@ -173,7 +142,7 @@ function CategoryRow({ category, amountPaise, totalPaise }: { category: string; 
         <Text style={{ fontSize: 12, fontWeight: 700 }}>{category}</Text>
         <Text style={{ fontSize: 11, color: token('colors.muted') }}>{percentage}%</Text>
       </Row>
-      <Text style={{ fontSize: 10, color: token('colors.muted') }}>{formatExportCurrency(amountPaise)}</Text>
+      <Text style={{ fontSize: 10, color: token('colors.muted') }}>{formatExportCurrency(amountPaise, locale)}</Text>
     </Column>
   )
 }

@@ -166,6 +166,8 @@ td { padding: 17px 22px; border-top: 1px solid var(--line); }
 .pdf-footer { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; }
 .email-page { display: grid; place-items: center; min-height: calc(100vh - 152px); }
 .email-renderer { width: min(100%, 560px); padding: 42px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 12px 30px #1b2b2410; }
+.email-renderer-frame, .hyper-preview-frame { width: 100%; min-height: 700px; border: 0; background: white; }
+.hyper-preview-frame { min-height: 900px; }
 .email-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 48px; font-size: 19px; }
 .email-renderer h1 { margin-bottom: 12px; font-size: 30px; }
 .email-copy { margin-bottom: 26px; color: var(--muted); font-size: 14px; line-height: 1.6; }

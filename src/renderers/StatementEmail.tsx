@@ -1,21 +1,27 @@
-import { calculateTotals, formatCurrency, formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
+import { calculateTotals, formatCurrency, formatDate, formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
 import type { Statement } from '../types'
-import type { FinSyncLocale } from '../public-api'
-import { Button, Column, Divider, Email, Heading, Row, Text } from '@hyper-elements/react'
-import { finsyncHyperTheme, token } from '../theme'
+import { Button, Column, Divider, Email, Heading, Image, Row, Table, TableCell, TableRow, Text, render } from '@hyper-elements/react'
+import { createFinSyncTheme, token } from '../theme'
+import type { FinSyncRendererConfig } from '../public-api'
+import { useEffect, useState } from 'react'
+import React from 'react'
+void React
 
 interface StatementEmailProps {
   statement: Statement
   statementUrl?: string
-  locale?: FinSyncLocale
-  brandName?: string
-  logoUrl?: string
-  logoAlt?: string
+  rendererConfig?: FinSyncRendererConfig
 }
 
-const themeLiteralLine = '#E4E9E6'
+const defaultRendererConfig: FinSyncRendererConfig = { brandName: 'FinSync', locale: 'en-IN' }
 
-export function StatementEmailDocument({ statement, statementUrl = '#statement', locale = 'en-IN' }: StatementEmailProps) {
+export function StatementEmailDocument({
+  statement,
+  statementUrl = '#statement',
+  rendererConfig = defaultRendererConfig,
+}: StatementEmailProps) {
+  const { brandName, locale, theme, optionalSections } = rendererConfig
+  const hyperTheme = createFinSyncTheme(theme)
   const totals = calculateTotals(statement.transactions)
   const maskedAccount = maskAccountNumber(statement.accountNumber)
   const reconciliation = getReconciliation(statement)
@@ -28,96 +34,100 @@ export function StatementEmailDocument({ statement, statementUrl = '#statement',
 
   return (
     <Email
-      theme={finsyncHyperTheme}
+      theme={hyperTheme}
       fonts={[{ family: 'FinSync Sans', src: '/fonts/FinSync-Regular.ttf', format: 'truetype', weight: 400 }]}
       width={560}
-      previewText="Your FinSync account statement is ready"
+      previewText={`Your ${brandName} account statement is ready`}
       style={{ gap: 16, backgroundColor: token('colors.surface'), color: token('colors.ink'), fontFamily: 'FinSync Sans, Arial, sans-serif' }}
     >
+      <Row style={{ gap: 8, alignItems: 'center' }}>
+        {rendererConfig.logoUrl && <Image src={rendererConfig.logoUrl} alt={rendererConfig.logoAlt || `${brandName} logo`} style={{ width: 28, height: 28 }} />}
+        <Text style={{ fontSize: 18, fontWeight: 700, color: token('colors.primary') }}>{brandName}</Text>
+      </Row>
       <Text style={{ fontSize: 11, fontWeight: 700, color: token('colors.primary'), textTransform: 'uppercase', letterSpacing: 1 }}>Monthly statement</Text>
       <Heading level={1} style={{ fontSize: 30, lineHeight: 1.2, color: token('colors.ink') }}>Your account statement is ready</Heading>
       <Text style={{ color: token('colors.muted'), fontSize: 14, lineHeight: 1.6 }}>
         Hi {statement.accountHolder.split(' ')[0]}, your {statement.accountType.toLowerCase()} statement is ready to review.
       </Text>
-      <Column style={{ gap: 5, padding: 16, backgroundColor: token('colors.surfaceSubtle'), border: { width: 1, style: 'solid', color: themeLiteralLine }, borderRadius: 8 }}>
-        <Text style={{ fontSize: 10, fontWeight: 700, color: token('colors.muted') }}>ACCOUNT</Text>
-        <Text style={{ fontFamily: 'DM Mono, monospace', fontSize: 17 }}>{maskedAccount}</Text>
-        <Text style={{ fontSize: 11, color: token('colors.muted') }}>{statementPeriod}</Text>
-      </Column>
-      <Row style={{ gap: 12 }}>
-        <Column style={{ gap: 6, padding: 16, border: { width: 1, style: 'solid', color: themeLiteralLine }, borderRadius: 8 }}>
-          <Text style={{ fontSize: 10, color: token('colors.muted') }}>Opening balance</Text>
-          <Text style={{ fontSize: 17, fontWeight: 700 }}>{formatCurrency(statement.openingBalancePaise)}</Text>
+      {optionalSections?.accountDetails !== false && (
+        <Column style={{ gap: 5, padding: 16, backgroundColor: token('colors.surfaceSubtle'), border: { width: 1, style: 'solid', color: token('colors.line') }, borderRadius: token('radii.md') }}>
+          <Text style={{ fontSize: 10, fontWeight: 700, color: token('colors.muted') }}>ACCOUNT</Text>
+          <Text style={{ fontFamily: 'DM Mono, monospace', fontSize: 17 }}>{maskedAccount}</Text>
+          <Text style={{ fontSize: 11, color: token('colors.muted') }}>{statement.accountHolder} · {statementPeriod}</Text>
         </Column>
-        <Column style={{ gap: 6, padding: 16, border: { width: 1, style: 'solid', color: themeLiteralLine }, borderRadius: 8 }}>
-          <Text style={{ fontSize: 10, color: token('colors.muted') }}>Closing balance</Text>
-          <Text style={{ fontSize: 17, fontWeight: 700 }}>{formatCurrency(statement.closingBalancePaise)}</Text>
-        </Column>
-      </Row>
-      <Row style={{ gap: 12 }}>
-        <Column style={{ gap: 6, padding: 16, backgroundColor: token('colors.primarySoft'), borderRadius: 8 }}>
-          <Text style={{ fontSize: 10, color: token('colors.primary') }}>Total credits</Text>
-          <Text style={{ fontSize: 15, fontWeight: 700, color: token('colors.primary') }}>{formatCurrency(totals.totalCreditsPaise)}</Text>
-        </Column>
-        <Column style={{ gap: 6, padding: 16, backgroundColor: token('colors.debitSoft'), borderRadius: 8 }}>
-          <Text style={{ fontSize: 10, color: token('colors.debit') }}>Total debits</Text>
-          <Text style={{ fontSize: 15, fontWeight: 700, color: token('colors.debit') }}>{formatCurrency(totals.totalDebitsPaise)}</Text>
-        </Column>
-      </Row>
-      {statement.transactions.length === 0 && (
-        <Text style={{ padding: 12, border: { width: 1, style: 'solid', color: themeLiteralLine }, borderRadius: 7, backgroundColor: token('colors.surfaceSubtle'), color: token('colors.muted'), fontSize: 11, textAlign: 'center' }}>
+      )}
+      {optionalSections?.financialSummary !== false && (
+        <>
+          <Row style={{ gap: 12 }}>
+            <Column style={{ gap: 6, padding: 16, border: { width: 1, style: 'solid', color: token('colors.line') }, borderRadius: token('radii.md') }}>
+              <Text style={{ fontSize: 10, color: token('colors.muted') }}>Opening balance</Text>
+              <Text style={{ fontSize: 17, fontWeight: 700 }}>{formatCurrency(statement.openingBalancePaise, locale)}</Text>
+            </Column>
+            <Column style={{ gap: 6, padding: 16, border: { width: 1, style: 'solid', color: token('colors.line') }, borderRadius: token('radii.md') }}>
+              <Text style={{ fontSize: 10, color: token('colors.muted') }}>Closing balance</Text>
+              <Text style={{ fontSize: 17, fontWeight: 700 }}>{formatCurrency(statement.closingBalancePaise, locale)}</Text>
+            </Column>
+          </Row>
+          <Row style={{ gap: 12 }}>
+            <Column style={{ gap: 6, padding: 16, backgroundColor: token('colors.primarySoft'), borderRadius: token('radii.md') }}>
+              <Text style={{ fontSize: 10, color: token('colors.primary') }}>Total credits</Text>
+              <Text style={{ fontSize: 15, fontWeight: 700, color: token('colors.primary') }}>{formatCurrency(totals.totalCreditsPaise, locale)}</Text>
+            </Column>
+            <Column style={{ gap: 6, padding: 16, backgroundColor: token('colors.debitSoft'), borderRadius: token('radii.md') }}>
+              <Text style={{ fontSize: 10, color: token('colors.debit') }}>Total debits</Text>
+              <Text style={{ fontSize: 15, fontWeight: 700, color: token('colors.debit') }}>{formatCurrency(totals.totalDebitsPaise, locale)}</Text>
+            </Column>
+          </Row>
+        </>
+      )}
+      {optionalSections?.transactions !== false && statement.transactions.length === 0 && (
+        <Text style={{ padding: 12, border: { width: 1, style: 'solid', color: token('colors.line') }, borderRadius: token('radii.sm'), backgroundColor: token('colors.surfaceSubtle'), color: token('colors.muted'), fontSize: 11, textAlign: 'center' }}>
           No transactions were recorded for this statement period.
         </Text>
       )}
+      {optionalSections?.transactions !== false && statement.transactions.length > 0 && (
+        <Table style={{ width: '100%', border: { width: 1, style: 'solid', color: token('colors.line') }, cellPadding: [8, 5], fontSize: 11 }}>
+          <TableRow header><TableCell>Date</TableCell><TableCell>Description</TableCell><TableCell style={{ textAlign: 'right' }}>Amount</TableCell></TableRow>
+          {statement.transactions.map((transaction) => (
+            <TableRow key={transaction.id}>
+              <TableCell>{formatDate(transaction.date, locale)}</TableCell>
+              <TableCell>{transaction.description}</TableCell>
+              <TableCell style={{ textAlign: 'right' }}>{transaction.type === 'CREDIT' ? '+' : '-'} {formatCurrency(transaction.amountPaise, locale)}</TableCell>
+            </TableRow>
+          ))}
+        </Table>
+      )}
       {!reconciliation.valid && (
-        <Text style={{ padding: 12, border: { width: 1, style: 'solid', color: '#9A6700' }, borderRadius: 7, color: token('colors.warning'), backgroundColor: token('colors.warningSoft'), fontSize: 11, lineHeight: 1.5 }}>
-          Statement needs review: the calculated closing balance is {formatCurrency(reconciliation.expectedClosingBalancePaise)}, {mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
+        <Text style={{ padding: 12, border: { width: 1, style: 'solid', color: token('colors.warning') }, borderRadius: token('radii.sm'), color: token('colors.warning'), backgroundColor: token('colors.warningSoft'), fontSize: 11, lineHeight: 1.5 }}>
+          Statement needs review: the calculated closing balance is {formatCurrency(reconciliation.expectedClosingBalancePaise, locale)}, {mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch), locale)}.
         </Text>
       )}
-      <Divider style={{ borderTop: { width: 1, style: 'solid', color: themeLiteralLine } }} />
-      <Button href={statementUrl} style={{ backgroundColor: token('colors.primary'), borderRadius: 6, padding: [12, 16] }}>View full statement</Button>
+      <Divider style={{ borderTop: { width: 1, style: 'solid', color: token('colors.line') } }} />
+      <Button href={statementUrl} style={{ backgroundColor: token('colors.primary'), borderRadius: token('radii.sm'), padding: [12, 16] }}>View full statement</Button>
     </Email>
   )
 }
 
-export function StatementEmail({ statement, statementUrl = '#statement', locale = 'en-IN', brandName = 'FinSync', logoUrl, logoAlt }: StatementEmailProps) {
-  const totals = calculateTotals(statement.transactions)
-  const maskedAccount = maskAccountNumber(statement.accountNumber)
-  const reconciliation = getReconciliation(statement)
-  const mismatch = reconciliation.differencePaise
-  const statementPeriod = formatStatementPeriod(
-    statement.statementPeriod.start,
-    statement.statementPeriod.end,
-    locale,
-  )
+export function StatementEmail({ statement, statementUrl = '#statement', rendererConfig }: StatementEmailProps) {
+  const [html, setHtml] = useState<string>()
+  const [error, setError] = useState<string>()
 
-  return (
-    <article className="email-renderer">
-      <div className="email-brand">{logoUrl ? <img src={logoUrl} alt={logoAlt || brandName} onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span className="brand-mark">{brandName[0]?.toUpperCase()}</span>}<strong>{brandName}</strong></div>
-      <p className="eyebrow">MONTHLY STATEMENT</p>
-      <h1>Your account statement is ready</h1>
-      <p className="email-copy">Hi {statement.accountHolder.split(' ')[0]}, your {statement.accountType.toLowerCase()} statement is ready to review.</p>
-      <section className="email-account">
-        <span>ACCOUNT</span>
-        <strong>{maskedAccount}</strong>
-        <small>{statementPeriod}</small>
-      </section>
-      <section className="email-balances">
-        <div><span>Opening balance</span><strong>{formatCurrency(statement.openingBalancePaise)}</strong></div>
-        <div><span>Closing balance</span><strong>{formatCurrency(statement.closingBalancePaise)}</strong></div>
-      </section>
-      <section className="email-summary">
-        <div className="email-summary-credit"><span>Total credits</span><strong>{formatCurrency(totals.totalCreditsPaise)}</strong></div>
-        <div className="email-summary-debit"><span>Total debits</span><strong>{formatCurrency(totals.totalDebitsPaise)}</strong></div>
-      </section>
-      {statement.transactions.length === 0 && <p className="email-reconciliation">No transactions were recorded for this statement period.</p>}
-      {!reconciliation.valid && (
-        <p className="email-reconciliation">
-          Statement needs review: the calculated closing balance is {formatCurrency(reconciliation.expectedClosingBalancePaise)}, {mismatch > 0 ? 'over' : 'under'} by {formatCurrency(Math.abs(mismatch))}.
-        </p>
-      )}
-      <a className="email-cta" href={statementUrl}>View full statement <span aria-hidden="true">→</span></a>
-      <p className="email-footnote">This notification contains a summary only. Sign in to FinSync to view all transactions securely.</p>
-    </article>
-  )
+  useEffect(() => {
+    let active = true
+    render(StatementEmailDocument({ statement, statementUrl, rendererConfig }))
+      .then((result) => {
+        if (active) {
+          setError(undefined)
+          setHtml(result.html)
+        }
+      })
+      .catch((renderError: unknown) => {
+        if (active) setError(renderError instanceof Error ? renderError.message : 'Email rendering failed.')
+      })
+    return () => { active = false }
+  }, [rendererConfig, statement, statementUrl])
+
+  if (error) return <p className="export-message error" role="alert">{error}</p>
+  if (!html) return <p className="export-message" role="status">Preparing email preview…</p>
+  return <iframe className="email-renderer-frame" title="Generated email preview" srcDoc={html} />
 }

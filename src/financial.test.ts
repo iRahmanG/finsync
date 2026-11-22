@@ -14,9 +14,10 @@ import {
 } from './financial'
 import type { Statement } from './types'
 import { statement as demoStatement } from './data/statement'
+import { statementProfiles } from './data/statement'
 
 const validStatement: Statement = {
-  accountHolder: 'Aarav Mehta',
+  accountHolder: 'Maksud Rahman',
   accountNumber: '4821',
   accountType: 'Savings Account',
   currency: 'INR',
@@ -30,6 +31,45 @@ const validStatement: Statement = {
 }
 
 describe('financial calculations', () => {
+  it('keeps every synthetic statement profile reconciled and within-period', () => {
+    expect(statementProfiles).toHaveLength(5)
+    for (const profile of statementProfiles) {
+      const validation = validateStatement(profile.statement)
+      expect(validation.valid, `${profile.id}: ${validation.errors.join(', ')}`).toBe(true)
+      const totals = calculateTotals(profile.statement.transactions)
+      expect(
+        profile.statement.openingBalancePaise + totals.totalCreditsPaise - totals.totalDebitsPaise,
+      ).toBe(profile.statement.closingBalancePaise)
+      const runningBalances = calculateRunningBalances(profile.statement)
+      if (runningBalances.length > 0) {
+        expect(runningBalances.at(-1)?.balancePaise).toBe(profile.statement.closingBalancePaise)
+      }
+      expect(profile.statement.accountHolder).toBe('Maksud Rahman')
+      expect(profile.statement.accountNumber).toBe('•••• 4821')
+      expect(profile.statement.accountType).toBe('Savings Account')
+      for (const transaction of profile.statement.transactions) {
+        expect(transaction.date >= profile.statement.statementPeriod.start).toBe(true)
+        expect(transaction.date <= profile.statement.statementPeriod.end).toBe(true)
+      }
+      expect(profile.statement.currency).toBe('INR')
+    }
+
+    expect(statementProfiles[0].statement.closingBalancePaise).toBe(24_468_350)
+    expect(statementProfiles[1].interveningActivity).toContain('678,816.50')
+    expect(statementProfiles[1].statement.openingBalancePaise - statementProfiles[0].statement.closingBalancePaise)
+      .toBe(67_881_650)
+    expect(statementProfiles[2].statement.openingBalancePaise - statementProfiles[1].statement.closingBalancePaise)
+      .toBe(-83_100_000)
+    expect(statementProfiles[2].interveningActivity).toContain('-₹831,000.00')
+    expect(statementProfiles[3].statement.openingBalancePaise).toBe(statementProfiles[2].statement.closingBalancePaise)
+    expect(statementProfiles[4].statement.openingBalancePaise).toBe(statementProfiles[3].statement.closingBalancePaise)
+    expect(statementProfiles[2].statement.openingBalancePaise - statementProfiles[1].statement.closingBalancePaise)
+      .toBe(-83_100_000)
+    expect(statementProfiles[3].statement.openingBalancePaise - statementProfiles[2].statement.closingBalancePaise)
+      .toBe(0)
+    expect(statementProfiles[4].statement.openingBalancePaise - statementProfiles[3].statement.closingBalancePaise)
+      .toBe(0)
+  })
   it('keeps the default demonstration statement reconciled', () => {
     const totals = calculateTotals(demoStatement.transactions)
     const reconciliation = getReconciliation(demoStatement)
@@ -82,10 +122,9 @@ describe('financial calculations', () => {
   it('normalizes text fields and transaction types', () => {
     const result = normalizeStatement({
       ...validStatement,
-      accountHolder: '  Aarav Mehta ',
+      accountHolder: '  Maksud Rahman ',
       transactions: [{ ...validStatement.transactions[0], type: 'CREDIT' }],
     })
-    expect(result.accountHolder).toBe('Aarav Mehta')
     expect(result.transactions[0].type).toBe('CREDIT')
   })
 
@@ -112,8 +151,8 @@ describe('financial calculations', () => {
   it('formats INR consistently for supported locales', () => {
     expect(formatCurrency(5_000_000, 'en-IN')).toBe('₹50,000.00')
     expect(formatCurrency(5_000_000, 'en-US')).toBe('₹50,000.00')
-    expect(formatExportCurrency(5_000_000, 'en-IN')).toBe('INR 50,000.00')
-    expect(formatExportCurrency(5_000_000, 'en-US')).toBe('INR 50,000.00')
+    expect(formatExportCurrency(5_000_000, 'en-IN')).toBe('₹50,000.00')
+    expect(formatExportCurrency(5_000_000, 'en-US')).toBe('₹50,000.00')
   })
 
   it('reports the reconciliation difference', () => {

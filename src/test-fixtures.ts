@@ -1,8 +1,8 @@
 import type { Statement, Transaction } from './types'
 
 export const reconciledStatement: Statement = {
-  accountHolder: 'Test Account',
-  accountNumber: '•••• 1234',
+  accountHolder: 'Maksud Rahman',
+  accountNumber: '•••• 4821',
   accountType: 'Savings Account',
   currency: 'INR',
   statementPeriod: { start: '2024-06-01', end: '2024-06-30' },
@@ -55,8 +55,8 @@ export const longDescriptionStatement: Statement = {
 }
 
 export const alternateStatement: Statement = {
-  accountHolder: 'Meera Shah',
-  accountNumber: '•••• 7391',
+  accountHolder: 'Maksud Rahman',
+  accountNumber: '•••• 4821',
   accountType: 'Current Account',
   currency: 'INR',
   statementPeriod: { start: '2025-01-01', end: '2025-01-31' },

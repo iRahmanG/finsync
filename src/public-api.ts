@@ -40,3 +40,12 @@ export interface FinSyncStatementProps {
     onChange: (value: string) => void
   }
 }
+
+export interface FinSyncRendererConfig {
+  brandName: string
+  locale: FinSyncLocale
+  logoUrl?: string
+  logoAlt?: string
+  theme?: FinSyncThemeOverrides
+  optionalSections?: FinSyncPresentationConfig['optionalSections']
+}

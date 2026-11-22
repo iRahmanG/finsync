@@ -276,11 +276,12 @@ export function formatExportCurrency(amountPaise: number, locale: FinSyncLocale 
   if (typeof amountPaise !== 'number' || !Number.isSafeInteger(amountPaise)) {
     throw new Error('Currency amount must be an integer number of paise')
   }
-  const rupees = (amountPaise / 100).toLocaleString(locale, {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'INR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })
-  return `INR ${rupees}`
+  }).format(amountPaise / 100)
 }
 
 export function maskAccountNumber(accountNumber: string): string {

@@ -1,6 +1,7 @@
 export { FinSyncStatement } from './FinSyncStatement'
 export type {
   FinSyncPresentationConfig,
+  FinSyncRendererConfig,
   FinSyncStatementProps,
   FinSyncThemeOverrides,
 } from './public-api'

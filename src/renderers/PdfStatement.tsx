@@ -1,8 +1,9 @@
-import { calculateRunningBalances, calculateTotals, formatExportCurrency, formatDate, formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
+import { calculateRunningBalances, calculateTotals, formatDate, formatExportCurrency, formatStatementPeriod, getReconciliation, maskAccountNumber } from '../financial'
 import type { Statement } from '../types'
 import {
   Column,
   Document,
+  Image,
   PageFooter,
   PageHeader,
   PageNumber,
@@ -12,12 +13,13 @@ import {
   TableRow,
   Text,
 } from '@hyper-elements/react'
-import { finsyncHyperTheme, token } from '../theme'
+import { createFinSyncTheme, token } from '../theme'
 import { exportPdf } from '../export'
 import { useState } from 'react'
-import type { FinSyncLocale } from '../public-api'
+import type { FinSyncLocale, FinSyncRendererConfig } from '../public-api'
 import * as React from 'react'
 void React
+import { HyperPreview } from './HyperPreview'
 
 interface PdfStatementProps {
   statement: Statement
@@ -26,11 +28,12 @@ interface PdfStatementProps {
   brandName?: string
   logoUrl?: string
   logoAlt?: string
+  rendererConfig?: FinSyncRendererConfig
 }
 
 const ROWS_PER_PAGE = 10
 
-export function PdfStatement({ statement, onClose, locale = 'en-IN', brandName = 'FinSync', logoUrl, logoAlt }: PdfStatementProps) {
+export function PdfStatement({ statement, onClose, locale = 'en-IN', brandName = 'FinSync', logoUrl, logoAlt, rendererConfig }: PdfStatementProps) {
   const [exportState, setExportState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [exportMessage, setExportMessage] = useState('')
 
@@ -38,7 +41,7 @@ export function PdfStatement({ statement, onClose, locale = 'en-IN', brandName =
     setExportState('loading')
     setExportMessage('')
     try {
-      await exportPdf(PdfDocument({ statement, locale, brandName }), statement)
+      await exportPdf(PdfDocument({ statement, rendererConfig: rendererConfig ?? { brandName, locale } }), statement, rendererConfig)
       setExportState('success')
       setExportMessage('PDF download started.')
     } catch (error) {
@@ -60,84 +63,25 @@ export function PdfStatement({ statement, onClose, locale = 'en-IN', brandName =
       </div>
       {exportMessage && <p className={exportState === 'error' ? 'export-message error' : 'export-message'} role={exportState === 'error' ? 'alert' : 'status'}>{exportMessage}</p>}
       <div className="pdf-document">
-        <PdfPreview statement={statement} locale={locale} brandName={brandName} logoUrl={logoUrl} logoAlt={logoAlt} />
+        <HyperPreview
+          title="Generated PDF statement preview"
+          element={PdfDocument({ statement, rendererConfig: rendererConfig ?? { brandName, locale, logoUrl, logoAlt } })}
+        />
       </div>
     </div>
   )
 }
 
-function PdfPreview({ statement, brandName = 'FinSync', logoUrl, logoAlt }: PdfStatementProps) {
-  const balances = calculateRunningBalances(statement)
-  const chronologicalTransactions = [...statement.transactions].sort((first, second) =>
-    first.date.localeCompare(second.date),
-  )
-  const pages = chronologicalTransactions.length === 0
-    ? [[]]
-    : Array.from(
-        { length: Math.ceil(chronologicalTransactions.length / ROWS_PER_PAGE) },
-        (_, pageIndex) => chronologicalTransactions.slice(pageIndex * ROWS_PER_PAGE, (pageIndex + 1) * ROWS_PER_PAGE),
-      )
-
-  return (
-    <>
-      {pages.map((page, pageIndex) => (
-        <article className="pdf-page" key={pageIndex}>
-          <header className="pdf-header">
-            <div className="brand">{logoUrl ? <img className="brand-logo" src={logoUrl} alt={logoAlt || brandName} onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span className="brand-mark">{brandName[0]?.toUpperCase()}</span>}<span>{brandName}</span></div>
-            <div className="pdf-header-meta">
-              <strong>ACCOUNT STATEMENT</strong>
-              <span>{formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</span>
-            </div>
-          </header>
-          {pageIndex === 0 && (
-            <div className="pdf-account">
-              <div><span>ACCOUNT HOLDER</span><strong>{statement.accountHolder}</strong></div>
-              <div><span>ACCOUNT</span><strong>{maskAccountNumber(statement.accountNumber)}</strong></div>
-              <div><span>TYPE</span><strong>{statement.accountType}</strong></div>
-            </div>
-          )}
-          {page.length === 0 ? (
-            <p className="empty-state">No transactions were recorded for this statement period.</p>
-          ) : (
-            <table className="pdf-table">
-              <thead><tr><th>Date</th><th>Description</th><th>Reference</th><th>Type</th><th>Amount</th><th>Running balance</th></tr></thead>
-              <tbody>
-                {page.map((transaction) => {
-                  const runningBalance = balances.find(({ transactionId }) => transactionId === transaction.id)
-                  return (
-                    <tr key={transaction.id}>
-                      <td>{formatDate(transaction.date)}</td>
-                      <td><strong>{transaction.description}</strong></td>
-                      <td>{transaction.reference}</td>
-                      <td className={transaction.type.toLowerCase()}>{transaction.type}</td>
-                      <td className={`pdf-amount ${transaction.type.toLowerCase()}`}>{transaction.type === 'CREDIT' ? '+' : '−'} {formatExportCurrency(transaction.amountPaise)}</td>
-                      <td>{formatExportCurrency(runningBalance?.balancePaise ?? statement.openingBalancePaise)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          )}
-          {pageIndex === pages.length - 1 && (
-            <div>
-              <div className="pdf-closing"><span>Closing balance</span><strong>{formatExportCurrency(statement.closingBalancePaise)}</strong></div>
-              {!getReconciliation(statement).valid && (
-                <p className="pdf-reconciliation">Statement needs review: calculated closing balance differs from the supplied closing balance.</p>
-              )}
-            </div>
-          )}
-          <footer className="pdf-footer">
-            <span>FinSync • Confidential</span>
-            <span>Statement period: {formatStatementPeriod(statement.statementPeriod.start, statement.statementPeriod.end)}</span>
-            <span>Page {pageIndex + 1} of {pages.length}</span>
-          </footer>
-        </article>
-      ))}
-    </>
-  )
-}
-
-export function PdfDocument({ statement, locale = 'en-IN', brandName = 'FinSync' }: { statement: Statement; locale?: FinSyncLocale; brandName?: string }) {
+export function PdfDocument({
+  statement,
+  locale = 'en-IN',
+  brandName = 'FinSync',
+  rendererConfig,
+}: { statement: Statement; locale?: FinSyncLocale; brandName?: string; rendererConfig?: FinSyncRendererConfig }) {
+  const resolvedConfig = rendererConfig ?? { brandName, locale }
+  const resolvedLocale = resolvedConfig.locale
+  const resolvedBrandName = resolvedConfig.brandName
+  const optionalSections = resolvedConfig.optionalSections
   const balances = calculateRunningBalances(statement)
   const totals = calculateTotals(statement.transactions)
   const netCashFlowPaise = totals.totalCreditsPaise - totals.totalDebitsPaise
@@ -151,22 +95,25 @@ export function PdfDocument({ statement, locale = 'en-IN', brandName = 'FinSync'
   const statementPeriod = formatStatementPeriod(
     statement.statementPeriod.start,
     statement.statementPeriod.end,
-    locale,
+    resolvedLocale,
   )
   const documentPages = pages.length === 0 ? [[]] : pages
 
   return (
     <Document
-          theme={finsyncHyperTheme}
-          fonts={[{ family: 'FinSync Sans', src: '/fonts/FinSync-Regular.ttf', format: 'truetype', weight: 400 }]}
+          theme={createFinSyncTheme(resolvedConfig.theme)}
+          fonts={[{ family: 'Noto Sans', src: '/fonts/NotoSans-Regular.ttf', format: 'truetype', weight: 400 }]}
           size="A4"
           margin={{ top: 36, right: 40, bottom: 36, left: 40 }}
-          title={`${brandName} account statement`}
-          style={{ gap: 12, color: token('colors.ink'), fontFamily: 'FinSync Sans, Arial, sans-serif', backgroundColor: token('colors.surface') }}
+          title={`${resolvedBrandName} account statement`}
+          style={{ gap: 12, color: token('colors.ink'), fontFamily: 'Noto Sans, Arial, sans-serif', backgroundColor: token('colors.surface') }}
         >
-          <PageHeader style={{ padding: { bottom: 16 }, border: { bottom: { width: 1, style: 'solid', color: '#E4E9E6' } } }}>
+          <PageHeader style={{ padding: { bottom: 16 }, border: { bottom: { width: 1, style: 'solid', color: token('colors.line') } } }}>
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 16, fontWeight: 700, color: token('colors.primary') }}>{brandName}</Text>
+              <Row style={{ gap: 8, alignItems: 'center' }}>
+                {resolvedConfig.logoUrl && <Image src={resolvedConfig.logoUrl} alt={resolvedConfig.logoAlt || `${resolvedBrandName} logo`} style={{ width: 24, height: 24 }} />}
+                <Text style={{ fontSize: 16, fontWeight: 700, color: token('colors.primary') }}>{resolvedBrandName}</Text>
+              </Row>
               <Text style={{ fontSize: 10, color: token('colors.muted') }}>
                 {statementPeriod}
               </Text>
@@ -176,7 +123,7 @@ export function PdfDocument({ statement, locale = 'en-IN', brandName = 'FinSync'
             <Document.Page key={pageIndex} style={{ gap: 10 }}>
               {pageIndex === 0 && (
                 <>
-                  <Row style={{ gap: 12, padding: { top: 6, bottom: 6 } }}>
+                  {optionalSections?.accountDetails !== false && <Row style={{ gap: 12, padding: { top: 6, bottom: 6 } }}>
                     <Column style={{ flex: 1.3, gap: 2 }}>
                       <Text style={{ fontSize: 8, color: token('colors.muted') }}>ACCOUNT HOLDER</Text>
                       <Text style={{ fontSize: 10, fontWeight: 700 }}>{statement.accountHolder}</Text>
@@ -193,17 +140,17 @@ export function PdfDocument({ statement, locale = 'en-IN', brandName = 'FinSync'
                       <Text style={{ fontSize: 8, color: token('colors.muted') }}>STATEMENT PERIOD</Text>
                       <Text style={{ fontSize: 9, fontWeight: 700 }}>{statementPeriod}</Text>
                     </Column>
-                  </Row>
-                  <Row style={{ gap: 8 }}>
-                    <PdfSummaryCell label="Opening balance" value={formatExportCurrency(statement.openingBalancePaise)} />
-                    <PdfSummaryCell label="Closing balance" value={formatExportCurrency(statement.closingBalancePaise)} />
-                    <PdfSummaryCell label="Total credits" value={formatExportCurrency(totals.totalCreditsPaise)} />
-                    <PdfSummaryCell label="Total debits" value={formatExportCurrency(totals.totalDebitsPaise)} />
-                    <PdfSummaryCell label="Net cash flow" value={formatExportCurrency(netCashFlowPaise)} />
-                  </Row>
+                  </Row>}
+                  {optionalSections?.financialSummary !== false && <Row style={{ gap: 8 }}>
+                    <PdfSummaryCell label="Opening balance" value={formatExportCurrency(statement.openingBalancePaise, resolvedLocale)} />
+                    <PdfSummaryCell label="Closing balance" value={formatExportCurrency(statement.closingBalancePaise, resolvedLocale)} />
+                    <PdfSummaryCell label="Total credits" value={formatExportCurrency(totals.totalCreditsPaise, resolvedLocale)} />
+                    <PdfSummaryCell label="Total debits" value={formatExportCurrency(totals.totalDebitsPaise, resolvedLocale)} />
+                    <PdfSummaryCell label="Net cash flow" value={formatExportCurrency(netCashFlowPaise, resolvedLocale)} />
+                  </Row>}
                 </>
               )}
-              <Table style={{ width: '100%', fontSize: 9, border: { width: 1, style: 'solid', color: '#E4E9E6' }, cellPadding: [10, 6] }}>
+              {optionalSections?.transactions !== false && <Table style={{ width: '100%', fontSize: 9, border: { width: 1, style: 'solid', color: token('colors.line') }, cellPadding: [10, 6] }}>
                 <TableRow header>
                   <TableCell>Date</TableCell>
                   <TableCell>Description</TableCell>
@@ -216,29 +163,29 @@ export function PdfDocument({ statement, locale = 'en-IN', brandName = 'FinSync'
                   const runningBalance = balances.find(({ transactionId }) => transactionId === transaction.id)
                   return (
                     <TableRow key={transaction.id}>
-                      <TableCell>{formatDate(transaction.date)}</TableCell>
+                      <TableCell>{formatDate(transaction.date, resolvedLocale)}</TableCell>
                       <TableCell>{transaction.description}</TableCell>
                       <TableCell>{transaction.reference}</TableCell>
                       <TableCell style={{ color: transaction.type === 'CREDIT' ? token('colors.primary') : token('colors.debit') }}>{transaction.type}</TableCell>
                       <TableCell style={{ textAlign: 'right', color: transaction.type === 'CREDIT' ? token('colors.primary') : token('colors.debit') }}>
-                        {transaction.type === 'CREDIT' ? '+' : '-'} {formatExportCurrency(transaction.amountPaise)}
+                        {transaction.type === 'CREDIT' ? '+' : '-'} {formatExportCurrency(transaction.amountPaise, resolvedLocale)}
                       </TableCell>
-                      <TableCell style={{ textAlign: 'right' }}>{formatExportCurrency(runningBalance?.balancePaise ?? statement.openingBalancePaise)}</TableCell>
+                      <TableCell style={{ textAlign: 'right' }}>{formatExportCurrency(runningBalance?.balancePaise ?? statement.openingBalancePaise, resolvedLocale)}</TableCell>
                     </TableRow>
                   )
                 })}
-              </Table>
-              {page.length === 0 && (
-                <Text style={{ padding: 18, border: { width: 1, style: 'solid', color: '#E4E9E6' }, borderRadius: 8, backgroundColor: token('colors.surfaceSubtle'), color: token('colors.muted'), fontSize: 11, textAlign: 'center' }}>
+              </Table>}
+              {optionalSections?.transactions !== false && page.length === 0 && (
+                <Text style={{ padding: 18, border: { width: 1, style: 'solid', color: token('colors.line') }, borderRadius: token('radii.md'), backgroundColor: token('colors.surfaceSubtle'), color: token('colors.muted'), fontSize: 11, textAlign: 'center' }}>
                   No transactions were recorded for this statement period.
                 </Text>
               )}
-              {pageIndex === documentPages.length - 1 && <PdfClosingSummary statement={statement} />}
+              {pageIndex === documentPages.length - 1 && optionalSections?.financialSummary !== false && <PdfClosingSummary statement={statement} locale={resolvedLocale} />}
             </Document.Page>
           ))}
-          <PageFooter style={{ border: { top: { width: 1, style: 'solid', color: '#E4E9E6' } }, padding: { top: 10 } }}>
+          <PageFooter style={{ border: { top: { width: 1, style: 'solid', color: token('colors.line') } }, padding: { top: 10 } }}>
             <Row style={{ justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 9, color: token('colors.muted') }}>FinSync • Confidential</Text>
+          <Text style={{ fontSize: 9, color: token('colors.muted') }}>{resolvedBrandName} • Confidential</Text>
               <Text style={{ fontSize: 9, color: token('colors.muted') }}>Synthetic demonstration</Text>
               <Text style={{ fontSize: 9, color: token('colors.muted') }}>Page <PageNumber /></Text>
             </Row>
@@ -249,27 +196,27 @@ export function PdfDocument({ statement, locale = 'en-IN', brandName = 'FinSync'
 
 function PdfSummaryCell({ label, value }: { label: string; value: string }) {
   return (
-    <Column style={{ flex: 1, gap: 3, padding: 8, border: { width: 1, style: 'solid', color: '#E4E9E6' }, borderRadius: 6, backgroundColor: '#F7F9F8' }}>
-      <Text style={{ fontSize: 7, color: '#667085' }}>{label}</Text>
+    <Column style={{ flex: 1, gap: token('spacing.xs'), padding: token('spacing.sm'), border: { width: 1, style: 'solid', color: token('colors.line') }, borderRadius: token('radii.sm'), backgroundColor: token('colors.surfaceSubtle') }}>
+      <Text style={{ fontSize: 7, color: token('colors.muted') }}>{label}</Text>
       <Text style={{ fontSize: 9, fontWeight: 700 }}>{value}</Text>
     </Column>
   )
 }
 
-function PdfClosingSummary({ statement }: { statement: Statement }) {
+function PdfClosingSummary({ statement, locale }: { statement: Statement; locale: FinSyncLocale }) {
   const reconciliation = getReconciliation(statement)
   const mismatch = reconciliation.differencePaise
 
   return (
     <Column style={{ gap: 8 }}>
-      <Row style={{ justifyContent: 'space-between', padding: { top: 12 }, border: { top: { width: 2, style: 'solid', color: '#182A38' } } }}>
+      <Row style={{ justifyContent: 'space-between', padding: { top: 12 }, border: { top: { width: 2, style: 'solid', color: token('colors.ink') } } }}>
         <Text style={{ fontSize: 12 }}>Closing balance</Text>
-        <Text style={{ fontSize: 12, fontWeight: 700 }}>{formatExportCurrency(statement.closingBalancePaise)}</Text>
+        <Text style={{ fontSize: 12, fontWeight: 700 }}>{formatExportCurrency(statement.closingBalancePaise, locale)}</Text>
       </Row>
       {!reconciliation.valid && (
         <Text style={{ padding: 8, border: { width: 1, style: 'solid', color: '#9A6700' }, backgroundColor: token('colors.warningSoft'), color: token('colors.warning'), fontSize: 9, lineHeight: 1.4 }}>
-          Statement needs review: calculated closing balance {formatExportCurrency(reconciliation.expectedClosingBalancePaise)};
-          {' '}{mismatch > 0 ? 'over' : 'under'} by {formatExportCurrency(Math.abs(mismatch))}.
+          Statement needs review: calculated closing balance {formatExportCurrency(reconciliation.expectedClosingBalancePaise, locale)};
+          {' '}{mismatch > 0 ? 'over' : 'under'} by {formatExportCurrency(Math.abs(mismatch), locale)}.
         </Text>
       )}
     </Column>

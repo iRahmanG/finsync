@@ -59,21 +59,44 @@ export const finsyncHyperTheme = defineTheme({
     body: "'FinSync Sans', Arial, sans-serif",
     mono: "'DM Mono', monospace",
   },
+  spacing: {
+    xs: theme.spacing.xs,
+    sm: theme.spacing.sm,
+    md: theme.spacing.md,
+    lg: theme.spacing.lg,
+    xl: theme.spacing.xl,
+  },
+  radii: {
+    sm: theme.radius.sm,
+    md: theme.radius.md,
+    pill: theme.radius.pill,
+  },
 })
 
 export function createFinSyncTheme(overrides: FinSyncThemeOverrides = {}) {
   return extendTheme(finsyncHyperTheme, {
     colors: {
-      ...(overrides.primaryColor ? { primary: overrides.primaryColor } : {}),
-      ...(overrides.textColor ? { ink: overrides.textColor } : {}),
-      ...(overrides.mutedColor ? { muted: overrides.mutedColor } : {}),
-      ...(overrides.surfaceColor ? { surface: overrides.surfaceColor } : {}),
-      ...(overrides.subtleSurfaceColor ? { surfaceSubtle: overrides.subtleSurfaceColor } : {}),
-      ...(overrides.borderColor ? { line: overrides.borderColor } : {}),
+      primary: overrides.primaryColor ?? theme.colors.primary,
+      ink: overrides.textColor ?? theme.colors.ink,
+      muted: overrides.mutedColor ?? theme.colors.muted,
+      surface: overrides.surfaceColor ?? theme.colors.surface,
+      surfaceSubtle: overrides.subtleSurfaceColor ?? theme.colors.surfaceSubtle,
+      line: overrides.borderColor ?? theme.colors.line,
     },
     fonts: {
-      ...(overrides.fontFamily ? { body: overrides.fontFamily } : {}),
-      ...(overrides.monoFontFamily ? { mono: overrides.monoFontFamily } : {}),
+      body: overrides.fontFamily ?? finsyncHyperTheme.fonts.body,
+      mono: overrides.monoFontFamily ?? finsyncHyperTheme.fonts.mono,
+    },
+    spacing: Object.fromEntries(
+      Object.entries(theme.spacing).map(([name, value]) => [
+        name,
+        `${parseInt(value, 10) * (overrides.spacingScale ?? 1)}px`,
+      ]),
+    ),
+    radii: {
+      sm: `${6 * (overrides.spacingScale ?? 1)}px`,
+      md: `${(overrides.borderRadius ?? 9) * (overrides.spacingScale ?? 1)}px`,
+      pill: theme.radius.pill,
     },
   })
 }

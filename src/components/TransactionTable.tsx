@@ -62,7 +62,7 @@ export function TransactionTable({
           </p>
         )}
       </div>
-      <p className="table-footer">Showing {transactions.length} of {totalTransactions} transactions <span>•</span> All amounts in INR</p>
+      <p className="table-footer">Showing {transactions.length} of {totalTransactions} transactions <span>•</span> All amounts in ₹</p>
     </>
   )
 }
