@@ -1,42 +1,84 @@
-# FinSync export verification
+# FinSync Export Server & Artifact Verification Guide
 
-Start the browser preview:
+This document explains how FinSync's export server generates print-ready PDF and high-resolution raster image artifacts, and how external applications can integrate these endpoints.
 
-```powershell
-npm run dev -- --host 127.0.0.1
-```
+---
 
-In another terminal, start the export server:
+## 1. Running the Export Server
 
-```powershell
+FinSync provides an export server built with Node.js, `@hyper-elements/react/pdf`, and `@hyper-elements/react/image`.
+
+### Starting the Server
+
+```bash
+# Windows PowerShell
+npm run export
+
+# macOS / Linux (bash/zsh)
 npm run export
 ```
 
-The export server listens on `127.0.0.1:4174` and accepts synthetic statement JSON for:
+The server listens on `127.0.0.1:4174` (configurable via `EXPORT_PORT` environment variable).
 
-- `POST /api/export/pdf`
-- `POST /api/export/png`
+---
 
-The PDF preview and export use the same Hyper Elements `Document` tree and `renderPdf()`.
-The PNG preview and export use the same Hyper Elements `Canvas` tree and `renderImage()` at `2400x1260` for a `1200x630` logical canvas scaled by 2.
-The email preview is generated from the Hyper Elements `Email` tree with `render()`.
-The web statement content is generated from a Hyper Elements `Page` tree with `render()`; the surrounding application shell and interactive controls remain ordinary React DOM.
+## 2. HTTP Export Endpoints
 
-`public/fonts/FinSync-Regular.ttf` and `public/fonts/FinSync-Bold.ttf` are static SIL Open Font License files.
-The source font license is stored at `public/fonts/OFL-FinSync.txt`.
+The export server provides two endpoints accepting `POST` requests with a JSON body containing `statement` (required) and `rendererConfig` (optional):
 
-Sample exports:
+### A. PDF Export (`POST /api/export/pdf`)
 
-- `docs/exports/finsync-statement-20240601-20240630.pdf`
-- `docs/exports/finsync-summary-20240601-20240630.png`
+Renders a print-ready vector PDF document sized to international A4 dimensions using `@hyper-elements/react/pdf`.
 
-The export server is a template demonstration boundary, not a production hosting solution.
+```bash
+curl -X POST http://127.0.0.1:4174/api/export/pdf \
+  -H "Content-Type: application/json" \
+  -d '{"statement": {"accountHolder":"Maksud Rahman","accountNumber":"•••• 4821","accountType":"Savings Account","currency":"INR","statementPeriod":{"start":"2026-10-01","end":"2026-10-31"},"openingBalancePaise":14280000,"closingBalancePaise":18860000,"transactions":[]}}' \
+  --output statement.pdf
+```
 
-The bundled `public/fonts/NotoSans-Regular.ttf` is the portable Unicode font used for PDF and Canvas text. It is licensed under the SIL Open Font License 1.1; attribution and license text are included at `public/fonts/OFL-NotoSans.txt`.
+- **Content-Type**: `application/pdf`
+- **Typography**: Uses bundled SIL OFL-licensed `NotoSans-Regular.ttf` (weight 400) and `NotoSans-Bold.ttf` (weight 700) for portable vector glyph rendering without relying on host operating system fonts.
 
-Current generated artifacts include:
+### B. PNG Image Export (`POST /api/export/png`)
 
-- `dist/exports/fin-sync-2025-09.png`
-- `dist/exports/fin-sync-2026-10.pdf`
-- `dist/exports/fin-sync-2026-10.html`
-- `dist/exports/fin-sync-2025-09-email.html`
+Renders a 1200×630 high-resolution financial snapshot PNG (scaled 2x to 2400×1260) using `@hyper-elements/react/image`.
+
+```bash
+curl -X POST http://127.0.0.1:4174/api/export/png \
+  -H "Content-Type: application/json" \
+  -d '{"statement": {"accountHolder":"Maksud Rahman","accountNumber":"•••• 4821","accountType":"Savings Account","currency":"INR","statementPeriod":{"start":"2026-10-01","end":"2026-10-31"},"openingBalancePaise":14280000,"closingBalancePaise":18860000,"transactions":[]}}' \
+  --output summary.png
+```
+
+- **Content-Type**: `image/png`
+- **Output Dimensions**: 1200×630 logical pixels at 2x resolution (`2400×1260` physical pixels).
+
+---
+
+## 3. Client-Side Export Utilities
+
+In browser React applications, import `exportPdf` and `exportPng` from `'../src'` (or your project's FinSync source directory / monorepo alias):
+
+```tsx
+import { exportPdf, exportPng, type Statement, type FinSyncRendererConfig } from '../src'
+
+async function handleDownloadPdf(statement: Statement, config?: FinSyncRendererConfig) {
+  // Sends request to http://127.0.0.1:4174/api/export/pdf and triggers browser download
+  await exportPdf(null, statement, config)
+}
+
+async function handleDownloadPng(statement: Statement, config?: FinSyncRendererConfig) {
+  // Sends request to http://127.0.0.1:4174/api/export/png and triggers browser download
+  await exportPng(null, statement, config)
+}
+```
+
+---
+
+## 4. Production Security & Deployment Boundary
+
+> [!WARNING]
+> The included `server/export-server.ts` is a reference developer export template. It is designed for local development, internal microservice pipelines, and preview demonstration.
+>
+> It does not include authentication, authorization, rate limiting, or reverse proxy hardening. Before exposing export endpoints to the public internet, deploy them behind an authenticated API gateway with rate-limiting and input size quotas.

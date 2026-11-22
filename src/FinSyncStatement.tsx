@@ -147,38 +147,81 @@ export function FinSyncStatement({
       ) : (
         <main className="main-content" id="statement">
           {optionalSections?.transactions !== false && (
-            <section className="transactions-section">
-              <div className="section-heading">
-                <div><h2>Transactions</h2><p className="muted">{filteredTransactions.length} transactions in this statement</p></div>
-                <div className="filters">
-                  <label className="search-box">
-                    <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search transactions" aria-label="Search transactions" />
-                  </label>
-                  <label className="date-filter"><span>From</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /></label>
-                  <label className="date-filter"><span>To</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></label>
-                  <div className="filter-tabs" role="group" aria-label="Filter transactions">
-                    {(['ALL', 'CREDIT', 'DEBIT'] as const).map((value) => (
-                      <button className={filter === value ? 'selected' : ''} key={value} onClick={() => setFilter(value)} type="button">
-                        {value === 'ALL' ? 'All' : value === 'CREDIT' ? 'Credits' : 'Debits'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            <div className="statement-toolbar no-print">
+              <div className="toolbar-meta">
+                <span className="toolbar-title">Filter Transactions</span>
+                <span className="muted">Showing {filteredTransactions.length} of {statement.transactions.length} entries</span>
               </div>
-            </section>
+              <div className="filters">
+                <label className="search-box">
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search description or reference…"
+                    aria-label="Search transactions"
+                  />
+                </label>
+                <label className="date-filter">
+                  <span>From</span>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(event) => setDateFrom(event.target.value)}
+                    aria-label="Filter from date"
+                  />
+                </label>
+                <label className="date-filter">
+                  <span>To</span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(event) => setDateTo(event.target.value)}
+                    aria-label="Filter to date"
+                  />
+                </label>
+                <div className="filter-tabs" role="group" aria-label="Filter transaction types">
+                  {(['ALL', 'CREDIT', 'DEBIT'] as const).map((value) => (
+                    <button
+                      className={filter === value ? 'selected' : ''}
+                      key={value}
+                      onClick={() => setFilter(value)}
+                      type="button"
+                    >
+                      {value === 'ALL' ? 'All' : value === 'CREDIT' ? 'Credits' : 'Debits'}
+                    </button>
+                  ))}
+                </div>
+                {(query || dateFrom || dateTo || filter !== 'ALL') && (
+                  <button
+                    className="reset-filters"
+                    type="button"
+                    onClick={() => {
+                      setQuery('')
+                      setDateFrom('')
+                      setDateTo('')
+                      setFilter('ALL')
+                    }}
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
           )}
-          <StatementPagePreview
-            statement={statementForDisplay}
-            transactions={filteredTransactions}
-            rendererConfig={{
-              brandName,
-              locale,
-              logoUrl: config?.logoUrl,
-              logoAlt: config?.logoAlt,
-              theme: themeOverrides,
-              optionalSections,
-            }}
-          />
+          <div className="statement-sheet">
+            <StatementPagePreview
+              statement={statementForDisplay}
+              transactions={filteredTransactions}
+              rendererConfig={{
+                brandName,
+                locale,
+                logoUrl: config?.logoUrl,
+                logoAlt: config?.logoAlt,
+                theme: themeOverrides,
+                optionalSections,
+              }}
+            />
+          </div>
         </main>
       )}
       <footer><span>© {statementYear} {brandName}</span><span>Synthetic statement template · Confidential</span></footer>

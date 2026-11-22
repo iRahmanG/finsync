@@ -21,7 +21,7 @@ export const theme = {
     warningSoft: '#FFF4CC',
   },
   typography: {
-    body: "'DM Sans', sans-serif",
+    body: "'DM Sans', 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     mono: "'DM Mono', monospace",
   },
   spacing: {
@@ -56,7 +56,7 @@ export const finsyncHyperTheme = defineTheme({
     warningSoft: theme.colors.warningSoft,
   },
   fonts: {
-    body: "'FinSync Sans', Arial, sans-serif",
+    body: "'DM Sans', 'Noto Sans', 'FinSync Sans', Arial, sans-serif",
     mono: "'DM Mono', monospace",
   },
   spacing: {

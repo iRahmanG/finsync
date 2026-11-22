@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "demo": "vite",
     "export": "tsx server/export-server.ts",
+    "export-server": "tsx server/export-server.ts",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",

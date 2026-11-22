@@ -63,7 +63,8 @@ export function parseExportRequestJson(body: string):
   | { ok: true; value: unknown }
   | { ok: false } {
   try {
-    return { ok: true, value: JSON.parse(body) }
+    const cleanBody = body.charCodeAt(0) === 0xfeff ? body.slice(1) : body
+    return { ok: true, value: JSON.parse(cleanBody) }
   } catch {
     return { ok: false }
   }

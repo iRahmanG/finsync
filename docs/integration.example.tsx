@@ -1,53 +1,69 @@
-import { FinSyncStatement } from '../src'
-import type { Statement } from '../src'
+/* eslint-disable react/only-export-components */
+import React from 'react'
+import {
+  FinSyncStatement,
+  type Statement,
+  type FinSyncPresentationConfig,
+  exportPdf,
+  exportPng,
+} from '../src'
+import { statement } from '../src/data/statement'
 
-const statement: Statement = {
-  accountHolder: 'Maksud Rahman',
-  accountNumber: '•••• 4821',
-  accountType: 'Savings Account',
-  currency: 'INR',
-  statementPeriod: { start: '2024-06-01', end: '2024-06-30' },
-  openingBalancePaise: 18_245_000,
-  closingBalancePaise: 23_945_000,
-  transactions: [
-    {
-      id: 'txn-01',
-      date: '2024-06-28',
-      description: 'Salary credit',
-      reference: 'SAL/JUN/2024',
-      type: 'CREDIT',
-      amountPaise: 8_500_000,
-      balancePaise: 26_745_000,
-    },
-    {
-      id: 'txn-02',
-      date: '2024-06-26',
-      description: 'Rent payment',
-      reference: 'UPI/RENT/0624',
-      type: 'DEBIT',
-      amountPaise: 2_800_000,
-      balancePaise: 23_945_000,
-    },
-  ],
+/**
+ * Developer Integration Example
+ *
+ * Demonstrates how an external application can import FinSync,
+ * pass its own typed financial statement data, customize branding,
+ * and render or export statements across multiple formats.
+ *
+ * FinSync is structured as a source-level developer template; external
+ * applications import directly from './src' or their monorepo alias.
+ */
+
+// 1. Established synthetic statement (Maksud Rahman, •••• 4821, Savings Account, INR)
+const customerStatement: Statement = statement
+
+// 2. Define custom brand & theme configuration (Acme Finance branding)
+const customConfig: FinSyncPresentationConfig = {
+  brandName: 'Acme Finance',
+  logoUrl: '/acme-logo.svg',
+  logoAlt: 'Acme Finance Logo',
+  locale: 'en-IN',
+  theme: {
+    primaryColor: '#0F52BA', // Sapphire Blue brand identity
+    textColor: '#0B1A2C', // Deep navy ink
+    mutedColor: '#5A6E85', // Slate secondary
+    surfaceColor: '#FFFFFF', // Crisp white surface
+    subtleSurfaceColor: '#F0F5FA', // Pale corporate tint
+    borderColor: '#D4E2EE', // Crisp border line
+    borderRadius: 10,
+    spacingScale: 1.05,
+  },
+  optionalSections: {
+    accountDetails: true,
+    financialSummary: true,
+    transactions: true,
+  },
 }
 
-export function ExampleStatement() {
+// 3. Render the interactive statement component
+export function ExternalApplicationStatement() {
   return (
-    <FinSyncStatement
-      statement={statement}
-      initialView="web"
-      config={{
-        brandName: 'Northstar',
-        theme: {
-          primaryColor: '#175CD3',
-          textColor: '#182A38',
-          mutedColor: '#667085',
-          surfaceColor: '#FFFFFF',
-          subtleSurfaceColor: '#F7F9FC',
-          borderColor: '#E4E7EC',
-          borderRadius: 8,
-        },
-      }}
-    />
+    <div style={{ minHeight: '100vh', background: '#F8FAF9' }}>
+      <FinSyncStatement
+        statement={customerStatement}
+        config={customConfig}
+        initialView="web"
+      />
+    </div>
   )
+}
+
+// 4. Standalone export triggers
+export async function triggerCustomerPdfExport() {
+  await exportPdf(null, customerStatement, customConfig)
+}
+
+export async function triggerCustomerPngExport() {
+  await exportPng(null, customerStatement, customConfig)
 }

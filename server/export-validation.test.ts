@@ -32,6 +32,7 @@ describe('export request validation', () => {
   it('separates malformed JSON from structurally invalid export requests', () => {
     expect(parseExportRequestJson('{bad json')).toEqual({ ok: false })
     expect(parseExportRequestJson('{}').ok).toBe(true)
+    expect(parseExportRequestJson('\uFEFF{"hello":"world"}')).toEqual({ ok: true, value: { hello: 'world' } })
     expect(validateExportRequest({})).toBeUndefined()
   })
 })
