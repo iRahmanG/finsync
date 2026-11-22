@@ -3,7 +3,7 @@
 > **Reusable, multi-format financial statement template powered by Hyper Elements.**
 > Transform one typed financial statement model into four production-grade outputs: **Responsive Web**, **Transactional Email**, **Print-Ready PDF**, and **Social Canvas**.
 
-Built with **React 19**, **TypeScript**, and **[@hyper-elements/react@0.5.0](https://github.com/hyper-elements/hyper-elements)**. local project: `D:\finsync`.
+Built with **React 19**, **TypeScript**, and **[@hyper-elements/react@0.5.0](https://github.com/hyper-elements/hyper-elements)**.
 
 ![FinSync Desktop Statement](docs/screenshots/final/web-desktop-1280x1050.png)
 
@@ -37,7 +37,7 @@ FinSync's shared semantic component layer produces four medium-optimized outputs
 | Output Target | Engine & Primitives | Visual Evidence Sample |
 | :--- | :--- | :--- |
 | **Interactive Web** | `<Page>` via `render()` | [![Web Desktop](docs/screenshots/final/web-desktop-1280x1050.png)](docs/screenshots/final/web-desktop-1280x1050.png) |
-| **Mobile Web** | `<Page>` responsive viewport | [![Web Mobile](docs/screenshots/final/web-mobile-390x844.png)](docs/screenshots/final/web-mobile-390x844.png) |
+| **Mobile Web** | `<Page>` responsive viewport | [![Web Mobile](docs/screenshots/finsync-mobile-view.jpeg)](docs/screenshots/finsync-mobile-view.jpeg) |
 | **Transactional Email** | `<Email width={580}>` via `render()` | [![Email Preview](docs/screenshots/final/email-preview-640x950.png)](docs/screenshots/final/email-preview-640x950.png) |
 | **Print-Ready PDF** | `<Document size="A4">` via `renderPdf()` | [![PDF Document](docs/screenshots/final/pdf-preview.png)](docs/screenshots/final/pdf-preview.png) |
 | **Shareable Snapshot** | `<Canvas 1200x630>` via `renderImage()` | [![Canvas Summary](docs/screenshots/final/canvas-summary-1200x630.png)](docs/screenshots/final/canvas-summary-1200x630.png) |
