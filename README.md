@@ -51,7 +51,7 @@ FinSync renders four distinct, medium-tailored outputs from the exact same synth
 | Output Format | Target Medium | Visual Preview |
 | :--- | :--- | :--- |
 | **Responsive Web** | Desktop browser dashboard | [![Web Desktop](docs/screenshots/final/web-desktop-1280x1050.png)](docs/screenshots/final/web-desktop-1280x1050.png)<br/>*Interactive web statement with responsive layout, type filters, and date range search.* |
-| **Mobile Web** | Smartphone viewports | [![Web Mobile](docs/screenshots/final/web-mobile-390x844.png)](docs/screenshots/final/web-mobile-390x844.png)<br/>*Compact mobile view with responsive card wrapping and fluid typography.* |
+| **Mobile Web** | Smartphone viewports | [![Web Mobile](docs/screenshots/finsync-mobile-view.jpeg)](docs/screenshots/finsync-mobile-view.jpeg)<br/>*Compact mobile view with responsive card wrapping and fluid typography.* |
 | **Transactional Email** | Mail clients (Outlook, Gmail, Apple Mail) | [![Email Preview](docs/screenshots/final/email-preview-640x950.png)](docs/screenshots/final/email-preview-640x950.png)<br/>*Client-safe table layout with inlined CSS, key summary metrics, and a direct web CTA.* |
 | **Print-Ready PDF** | Archival A4 document download | [![PDF Preview](docs/screenshots/final/pdf-preview.png)](docs/screenshots/final/pdf-preview.png)<br/>*Multi-page paginated A4 PDF with running ledger balances, embedded Noto Sans fonts, and footer page counters.* |
 | **Canvas Snapshot** | Social cards & executive previews | [![Canvas Summary](docs/screenshots/final/canvas-summary-1200x630.png)](docs/screenshots/final/canvas-summary-1200x630.png)<br/>*1200×630 high-contrast snapshot featuring opening/closing balances, net cash flow, and activity insights.* |
