@@ -18,33 +18,33 @@ FinSync resolves the traditional fragmentation of multi-channel financial report
 
 ```mermaid
 flowchart TD
-    subgraph Ingestion ["1. Data Layer & Verification"]
-        InputData["Raw Statement Input"] --> Normalization["normalizeStatement()<br/>• Date validation (YYYY-MM-DD)<br/>• Integer paise checks<br/>• Currency verification (INR)"]
-        Normalization --> MathEngine["Financial Engine (src/financial.ts)<br/>• calculateTotals()<br/>• calculateRunningBalances()<br/>• getReconciliation()"]
+    subgraph Ingestion ["1. Data Layer and Verification"]
+        InputData["Raw Statement Input"] --> Normalization["normalizeStatement<br/>Date validation YYYY-MM-DD<br/>Integer paise checks<br/>Currency verification INR"]
+        Normalization --> MathEngine["Financial Engine: src/financial.ts<br/>calculateTotals<br/>calculateRunningBalances<br/>getReconciliation"]
     end
 
-    subgraph ComponentLayer ["2. Shared Semantic Hyper Elements Layer (src/components)"]
-        BrandHeader["BrandHeader<br/>(standard / email / compact / canvas)"]
-        AccountInfo["AccountInformation<br/>(row / column / pdf / canvas)"]
-        BalSummary["BalanceSummary<br/>(grid / stacked / horizontal / metrics)"]
-        TxnSection["TransactionSection & Row<br/>(5 cols web / 3 cols email / 6 cols pdf)"]
-        ReconBanner["ReconciliationBanner<br/>(standard / compact / email)"]
-        StmtFooter["StatementFooter<br/>(standard / web / pdf page counters)"]
-        StmtBody["StatementBody<br/>(Visibility orchestration)"]
+    subgraph ComponentLayer ["2. Shared Semantic Hyper Elements Layer: src/components"]
+        BrandHeader["BrandHeader<br/>standard / email / compact / canvas"]
+        AccountInfo["AccountInformation<br/>row / column / pdf / canvas"]
+        BalSummary["BalanceSummary<br/>grid / stacked / horizontal / metrics"]
+        TxnSection["TransactionSection and Row<br/>5 cols web / 3 cols email / 6 cols pdf"]
+        ReconBanner["ReconciliationBanner<br/>standard / compact / email"]
+        StmtFooter["StatementFooter<br/>standard / web / pdf page counters"]
+        StmtBody["StatementBody<br/>Visibility orchestration"]
     end
 
     subgraph DocumentRoots ["3. Hyper Elements Document Roots"]
-        WebRoot["&lt;Page&gt; (src/renderers/WebStatement.tsx)"]
-        EmailRoot["&lt;Email width={580}&gt; (src/renderers/StatementEmail.tsx)"]
-        PdfRoot["&lt;Document size='A4'&gt; (src/renderers/PdfStatement.tsx)"]
-        CanvasRoot["&lt;Canvas 1200x630&gt; (src/renderers/CanvasSummary.tsx)"]
+        WebRoot["Page Root: src/renderers/WebStatement.tsx"]
+        EmailRoot["Email Root: src/renderers/StatementEmail.tsx"]
+        PdfRoot["Document Root: src/renderers/PdfStatement.tsx"]
+        CanvasRoot["Canvas Root: src/renderers/CanvasSummary.tsx"]
     end
 
-    subgraph ExecutionTargets ["4. Compilers & Generated Outputs"]
-        WebRoot -->|render()| WebHTML["Responsive Web HTML + Scoped CSS"]
-        EmailRoot -->|render()| EmailHTML["Email Client HTML + Inlined Tables"]
-        PdfRoot -->|renderPdf()| VectorPDF["Archival Vector A4 PDF"]
-        CanvasRoot -->|renderImage()| RasterPNG["2400x1260 2x PNG Snapshot"]
+    subgraph ExecutionTargets ["4. Compilers and Generated Outputs"]
+        WebRoot -->|render| WebHTML["Responsive Web HTML + Scoped CSS"]
+        EmailRoot -->|render| EmailHTML["Email Client HTML + Inlined Tables"]
+        PdfRoot -->|renderPdf| VectorPDF["Archival Vector A4 PDF"]
+        CanvasRoot -->|renderImage| RasterPNG["2400x1260 2x PNG Snapshot"]
     end
 
     MathEngine --> ComponentLayer
@@ -149,7 +149,7 @@ sequenceDiagram
     participant Hyper as @hyper-elements/react
 
     User->>Frontend: Clicks "Download PDF" / "Download PNG"
-    Frontend->>Server: POST /api/export/{pdf|png} (JSON Payload)
+    Frontend->>Server: POST /api/export/:format (JSON Payload)
     Note over Server: Input sanitization, BOM stripping, payload limit (2 MB)
     Server->>Hyper: renderPdf() / renderImage() with bundled Noto Sans
     Hyper-->>Server: Binary Uint8Array buffer

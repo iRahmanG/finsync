@@ -81,10 +81,10 @@ flowchart TD
     Statement["Financial Statement Data<br/>(Supplied by FinSync)"]
     HyperElements["Hyper Elements<br/>Shared Component Composition Layer<br/>(BrandHeader · AccountInfo · BalanceSummary · Reconciliation · Footer)"]
     
-    Web["Responsive Web<br/>&lt;Page&gt; · render()"]
-    Email["Transactional Email<br/>&lt;Email&gt; · render()"]
-    PDF["Print-Ready PDF<br/>&lt;Document&gt; · renderPdf()"]
-    Canvas["Social & Summary Canvas<br/>&lt;Canvas&gt; · renderImage()"]
+    Web["Responsive Web<br/>Page component · render"]
+    Email["Transactional Email<br/>Email component · render"]
+    PDF["Print-Ready PDF<br/>Document component · renderPdf"]
+    Canvas["Social and Summary Canvas<br/>Canvas component · renderImage"]
 
     Statement --> HyperElements
     HyperElements --> Web
