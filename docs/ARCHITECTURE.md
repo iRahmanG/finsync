@@ -1,183 +1,163 @@
-# FinSync Architecture — Shared Hyper Elements Content Layer
+# FinSync Technical Architecture
 
-FinSync demonstrates how developers can integrate `@hyper-elements/react@0.5.0` to render unified financial statement data across four distinct target formats while respecting each medium's physical constraints.
+This document details the internal architecture, design principles, component reuse model, and rendering pipeline of **FinSync**, a multi-format financial statement template built with **React**, **TypeScript**, and **@hyper-elements/react@0.5.0**.
+
+---
+
+## 1. Architectural Philosophy & Design Principles
+
+FinSync resolves the traditional fragmentation of multi-channel financial reporting. Rather than maintaining separate rendering pipelines for web portals, transactional emails, archival PDFs, and preview images, FinSync is structured around three core principles:
+
+1. **Domain Isolation**: Financial ingestion, normalization, and mathematical reconciliation are decoupled from document rendering. Calculation logic is completely agnostic to whether the output is an email or an A4 print document.
+2. **Polymorphic Hyper Elements Primitives**: Declarative presentation components (`BrandHeader`, `AccountInformation`, `BalanceSummary`, `TransactionSection`, `ReconciliationBanner`, `StatementFooter`) compose generic Hyper Elements layout blocks (`Row`, `Column`, `Text`, `Heading`, `Table`) that compile across target-specific document roots (`Page`, `Email`, `Document`, `Canvas`).
+3. **Respect for Physical Medium Constraints**: Visual consistency does not mean forcing identical layouts across wildly different media. Email requires strict width limits (580px) and MSO table fallbacks; PDF requires discrete A4 pagination (12 rows/page) and vector font embedding; Canvas requires a fixed 1200×630 high-contrast summary grid; Web requires fluid responsive layouts with interactive filtering.
+
+---
+
+## 2. System Architecture Diagram
 
 ```mermaid
 flowchart TD
-    subgraph DataLayer ["1. Typed Financial Data Model"]
-        Statement["Statement Data (integer paise)<br/>• Account: Maksud Rahman (•••• 4821)<br/>• Period & Running Balances<br/>• Reconciliation Integrity Check"]
-        Config["FinSyncPresentationConfig<br/>• Brand (Name, Logo, Colors)<br/>• Theme Overrides (Tokens)<br/>• Locale ('en-IN' | 'en-US')<br/>• Optional Sections Toggle"]
+    subgraph Ingestion ["1. Data Layer & Verification"]
+        InputData["Raw Statement Input"] --> Normalization["normalizeStatement()<br/>• Date validation (YYYY-MM-DD)<br/>• Integer paise checks<br/>• Currency verification (INR)"]
+        Normalization --> MathEngine["Financial Engine (src/financial.ts)<br/>• calculateTotals()<br/>• calculateRunningBalances()<br/>• getReconciliation()"]
     end
 
-    subgraph SharedLayer ["2. Shared Semantic Hyper Elements Layer (src/components)"]
-        BrandHeader["BrandHeader<br/>(Logo, Eyebrow, Period)"]
-        AccountInfo["AccountInformation<br/>(Holder, Masked Acct, Type)"]
-        BalSummary["BalanceSummary<br/>(Opening, Closing, Credits, Debits)"]
-        TxnSection["TransactionSection & Row<br/>(Date, Ref, Type, Amount, Balance)"]
-        ReconBanner["ReconciliationBanner<br/>(Audit Status & Anomaly Warning)"]
-        StmtFooter["StatementFooter<br/>(Legal Notices, Page Numbers)"]
-        StmtBody["StatementBody<br/>(Section Visibility Orchestration)"]
+    subgraph ComponentLayer ["2. Shared Semantic Hyper Elements Layer (src/components)"]
+        BrandHeader["BrandHeader<br/>(standard / email / compact / canvas)"]
+        AccountInfo["AccountInformation<br/>(row / column / pdf / canvas)"]
+        BalSummary["BalanceSummary<br/>(grid / stacked / horizontal / metrics)"]
+        TxnSection["TransactionSection & Row<br/>(5 cols web / 3 cols email / 6 cols pdf)"]
+        ReconBanner["ReconciliationBanner<br/>(standard / compact / email)"]
+        StmtFooter["StatementFooter<br/>(standard / web / pdf page counters)"]
+        StmtBody["StatementBody<br/>(Visibility orchestration)"]
     end
 
-    subgraph Roots ["3. Format-Specific Hyper Elements Roots"]
-        PageRoot["&lt;Page&gt;<br/>Web Document Root"]
-        EmailRoot["&lt;Email width={580}&gt;<br/>Email Document Root"]
-        DocRoot["&lt;Document size='A4'&gt;<br/>PDF Document Root"]
-        CanvasRoot["&lt;Canvas 1200x630&gt;<br/>Image Artboard Root"]
+    subgraph DocumentRoots ["3. Hyper Elements Document Roots"]
+        WebRoot["&lt;Page&gt; (src/renderers/WebStatement.tsx)"]
+        EmailRoot["&lt;Email width={580}&gt; (src/renderers/StatementEmail.tsx)"]
+        PdfRoot["&lt;Document size='A4'&gt; (src/renderers/PdfStatement.tsx)"]
+        CanvasRoot["&lt;Canvas 1200x630&gt; (src/renderers/CanvasSummary.tsx)"]
     end
 
-    subgraph ShellControls ["React 19 Application Shell (React DOM)"]
-        AppShell["FinSyncStatement / Navigation<br/>• Format Switcher Tabs<br/>• Search & Transaction Filters<br/>• Theme Preset Dropdown<br/>• HyperPreview &lt;iframe&gt; Integration"]
+    subgraph ExecutionTargets ["4. Compilers & Generated Outputs"]
+        WebRoot -->|render()| WebHTML["Responsive Web HTML + Scoped CSS"]
+        EmailRoot -->|render()| EmailHTML["Email Client HTML + Inlined Tables"]
+        PdfRoot -->|renderPdf()| VectorPDF["Archival Vector A4 PDF"]
+        CanvasRoot -->|renderImage()| RasterPNG["2400x1260 2x PNG Snapshot"]
     end
 
-    subgraph Outputs ["4. Generated Multi-Format Outputs"]
-        WebOut["Responsive Web Statement<br/>render() → HTML / CSS"]
-        EmailOut["Transactional HTML Email<br/>render() → Inlined Table HTML"]
-        PdfOut["Print-Ready A4 PDF<br/>renderPdf() → Vector PDF Bytes"]
-        ImageOut["2400x1260 Social Snapshot<br/>renderImage() → 2x Scaled PNG"]
-    end
-
-    Statement --> StmtBody
-    Statement --> ReconBanner
-    Statement --> BalSummary
-    Config --> BrandHeader
-    Config --> SharedLayer
-
-    SharedLayer --> PageRoot
-    SharedLayer --> EmailRoot
-    SharedLayer --> DocRoot
-    SharedLayer --> CanvasRoot
-
-    PageRoot --> WebOut
-    EmailRoot --> EmailOut
-    DocRoot --> PdfOut
-    CanvasRoot --> ImageOut
-
-    AppShell -.->|Interactive Preview| PageRoot
-    AppShell -.->|Iframe Preview| EmailRoot
-    AppShell -.->|Preview / Export Trigger| DocRoot
-    AppShell -.->|Preview / Export Trigger| CanvasRoot
+    MathEngine --> ComponentLayer
+    ComponentLayer --> DocumentRoots
 ```
 
 ---
 
-## 1. Shared Content Layer
+## 3. Financial Data Model & Precision Guarantees
 
-Rather than duplicating component trees across each renderer, FinSync organizes financial presentation into semantic, Hyper Elements-native components under [`src/components/`](../src/components/):
+### 3.1 Integer Paise Representation
+To eliminate floating-point rounding errors inherent in IEEE 754 arithmetic (such as `0.1 + 0.2 === 0.30000000000000004`), all monetary values in FinSync are strictly represented as non-negative integer paise (`1 INR = 100 paise`):
 
-| Component | Responsibility | Reused In | Format Variants |
-|---|---|---|---|
-| `BrandHeader` | Renders logo image with text fallback, brand name, eyebrow, and period. | Web, Email, PDF, Canvas | `'standard'` (Web), `'email'` (Email), `'compact'` (PDF/Canvas) |
-| `AccountInformation` | Displays account holder, masked account number (`•••• 4821`), and account type. | Web, Email, PDF | `'row'` (Web horizontal), `'column'` (Email stacked), `'pdf'` (PDF table-aligned) |
-| `BalanceSummary` | Calculates totals and displays opening balance, closing balance, credits, debits, and net cash flow. | Web, Email, PDF, Canvas | `'grid'` (Web 2×2), `'stacked'` (Email), `'horizontal'` (PDF 5-cell row), `'metrics'` (Canvas 3 cards) |
-| `TransactionSection` | Column and Table container rendering headers, rows, and empty state. | Web, Email, PDF | Configurable `showReference`, `showType`, `showRunningBalance`, `fontSize`, `cellPadding` |
-| `TransactionRow` | Semantic `<TableRow>` with formatted date, description, type badge, and amount. | Web, Email, PDF | Configurable running balance and credit/debit color indicators |
-| `ReconciliationBanner` | Renders a warning callout if opening + credits − debits ≠ closing balance. | Web, Email, PDF, Canvas | Automatically hidden if reconciled; `'standard'`, `'compact'`, `'email'` styles |
-| `StatementFooter` | Confidential and synthetic demonstration notices with pagination. | Web, PDF | Optional `<PageNumber />` for PDF |
-| `StatementBody` | High-level composition assembling account info, summary, and transactions based on `optionalSections`. | Web, Email | Coordinates section visibility flags |
+```ts
+export interface Transaction {
+  id: string
+  date: string             // YYYY-MM-DD
+  description: string
+  reference: string
+  type: 'CREDIT' | 'DEBIT'
+  amountPaise: number      // e.g. 6500000 for ₹65,000.00
+  balancePaise?: number    // Snapshot running balance
+}
 
----
-
-## 2. Reused vs. Format-Specific Adaptations
-
-FinSync avoids superficial write-once claims where medium constraints differ:
-
-### A. Web (`Page`)
-- **Shell**: React DOM handles top navigation, theme preset selector, and transaction search/filter tabs.
-- **Statement Content**: Rendered via Hyper Elements `<Page>` and `render()`.
-- **Adaptation**: Responsive desktop and mobile layout with full transaction filtering.
-
-### B. Email (`Email`)
-- **Shell**: Rendered into an iframe preview using `render()`.
-- **Statement Content**: Wrapped in `<Email width={560}>` with client-safe typography and inlined tables.
-- **Adaptations**:
-  - `AccountInformation` uses a stacked `'column'` layout to prevent horizontal overflowing.
-  - `BalanceSummary` uses `'stacked'` rows with soft background tints instead of flex cards.
-  - Transactions table displays simplified columns (`Date`, `Description`, `Amount`).
-
-### C. PDF (`Document`)
-- **Shell**: Served by local export server using `renderPdf()`.
-- **Statement Content**: Wrapped in `<Document size="A4">` with SIL Open Font License `Noto Sans`.
-- **Adaptations**:
-  - Multi-page pagination: transactions are sliced into `Document.Page`s of 10 rows per page.
-  - `TransactionSection` displays `Running balance` calculated sequentially in integer paise.
-  - `PageHeader` carries `BrandHeader(variant="compact")`; `PageFooter` carries `StatementFooter` with dynamic `<PageNumber />`.
-  - Closing summary and reconciliation alerts appear on the final page.
-
-### D. Canvas (`Canvas`)
-- **Shell**: Served by local export server using `renderImage()`.
-- **Statement Content**: Fixed-dimension social card (`1200 × 630` logical, rendered at 2× scale).
-- **Adaptations**:
-  - Acts as a financial snapshot rather than an exhaustive document.
-  - Reuses `BalanceSummary(variant="metrics")` for high-level Income, Expenses, and Net Cash Flow.
-  - Features categorized expense breakdown heuristics rather than a full multi-page table.
-
----
-
-## 3. Developer Guide: Adding or Customizing a Shared Component
-
-All shared components accept the normalized `Statement` object and `FinSyncRendererConfig`:
-
-```tsx
-import { Column, Text } from '@hyper-elements/react'
-import { token } from '../theme'
-import type { Statement } from '../types'
-import type { FinSyncLocale } from '../public-api'
-
-export function CustomStatementNotice({
-  statement,
-  locale = 'en-IN',
-}: {
-  statement: Statement
-  locale?: FinSyncLocale
-}) {
-  return (
-    <Column
-      style={{
-        padding: token('spacing.md'),
-        backgroundColor: token('colors.surfaceSubtle'),
-        borderRadius: token('radii.sm'),
-      }}
-    >
-      <Text style={{ fontSize: 12, color: token('colors.muted') }}>
-        Notice for {statement.accountHolder}: All transactions are processed in {statement.currency}.
-      </Text>
-    </Column>
-  )
+export interface Statement {
+  accountHolder: string
+  accountNumber: string
+  accountType: string
+  currency: 'INR'
+  statementPeriod: {
+    start: string          // YYYY-MM-DD
+    end: string            // YYYY-MM-DD
+  }
+  openingBalancePaise: number
+  closingBalancePaise: number
+  transactions: Transaction[]
 }
 ```
 
-Because `token(...)` and Hyper Elements layout primitives are root-agnostic, `CustomStatementNotice` can be inserted directly into `<Page>`, `<Email>`, or `<Document>`.
+### 3.2 Automated Ledger Reconciliation
+The financial engine validates statement balance consistency using the standard banking formula:
+
+$$\text{Expected Closing Balance} = \text{Opening Balance} + \sum \text{Credits} - \sum \text{Debits}$$
+
+If $\Delta = \text{Reported Closing} - \text{Expected Closing} \neq 0$:
+- `getReconciliation(statement).valid` evaluates to `false`.
+- A red `ReconciliationBanner` renders across all 4 formats detailing the discrepancy.
 
 ---
 
-## 4. Hyper Elements Layout Validation & Diagnostics
+## 4. Hyper Elements Component Reuse Matrix
 
-FinSync separates **financial data validation** (integer arithmetic, date parsing, running balances in `financial.ts`) from **template layout validation** (Hyper Elements AST inspection in `server/check-exports.ts` and test suites).
+FinSync maximizes code sharing through variant props without forcing identical layouts:
 
-### Validation APIs in `@hyper-elements/react@0.5.0`
-- `validate(element)`: Validates the template against schema constraints without rendering.
-- `inspect(element)` (`@hyper-elements/react/inspect`): Analyzes root type, nodes count, applied theme, and diagnostics.
-- `formatDiagnostics(diagnostics)`: Generates actionable CLI logs with node paths and suggested fixes.
-- `outline(element)`: Produces a structural text outline of the layout tree.
+| Semantic Component | Web (`Page`) | Email (`Email`) | PDF (`Document`) | Canvas (`Canvas`) | Format Adaptation & Rationale |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **`BrandHeader`** | `variant="standard"` | `variant="email"` | `variant="compact"` | `variant="canvas"` | Adapts layout orientation, logo dimensions (24px–32px), and header badge styling. |
+| **`AccountInformation`** | `layout="row"` | `layout="column"` | `layout="pdf"` | `layout="canvas"` | Adapts between desktop 2-column card, stacked email table, bordered PDF row, and compact canvas bar. |
+| **`BalanceSummary`** | `variant="grid"` | `variant="stacked"` | `variant="horizontal"` | `variant="metrics"` | Polymorphic card container adapting between a 2×2 grid, stacked rows, 5-cell print row, and 3 metric cards. |
+| **`TransactionSection`** | Reused (5 cols) | Reused (3 cols) | Reused (6 cols + balance) | *Omitted* | Intentionally omitted on Canvas (1200×630 snapshot medium); shared across all 3 document formats. |
+| **`TransactionRow`** | Reused | Reused | Reused | *Omitted* | Renders individual ledger rows with type badges and positive/negative credit-debit styling. |
+| **`ReconciliationBanner`**| `variant="standard"` | `variant="email"` | `variant="compact"` | `variant="email"` | Unified mathematical alert callout indicating audit reconciliation status. |
+| **`StatementFooter`** | `variant="web"` | *Omitted* | `variant="standard"` | *Omitted* | Reused across full document pages (`Web` and `PDF`). Renders legal notices and dynamic `<PageNumber />` in PDF. |
+| **`StatementBody`** | `variant="web"` | `variant="email"` | *Direct pagination* | *Snapshot* | Reused across continuous scroll media (`Web` and `Email`) to coordinate section visibility flags. |
 
-### Diagnostic Example: Missing Theme Tokens
-When a component uses `token('colors.primary')` inside a root that lacks a theme definition, Hyper Elements generates a structured diagnostic:
+---
 
-```ts
-import { Page, Text, token, validate, formatDiagnostics } from '@hyper-elements/react'
+## 5. Format-Specific Rendering Implementations
 
-const tree = (
-  <Page>
-    <Text style={{ color: token('colors.primary') }}>Un-themed text</Text>
-  </Page>
-)
+### 5.1 Web Renderer (`src/renderers/WebStatement.tsx`)
+- **Document Root**: `<Page>`
+- **Compilation**: `render()` compiles the tree into valid HTML with scoped classnames and media queries (`@media (max-width: 640px)`).
+- **Interactive Shell Integration**: The web statement renders inside the `StatementPagePreview` wrapper. Host application controls (search inputs, date range pickers, type filters) filter transactions client-side before passing them to `StatementPageDocument`.
 
-const result = validate(tree)
-console.log(result.valid) // false
-console.log(formatDiagnostics(result.diagnostics))
-// Output:
-// error theme/missing-token at root.children[0].style.color: There's no token "colors.primary": the template has no theme
+### 5.2 Email Renderer (`src/renderers/StatementEmail.tsx`)
+- **Document Root**: `<Email width={580}>`
+- **Compilation**: `render()` produces table-based HTML markup with inlined CSS styles and Outlook MSO conditional comments.
+- **Client Safety**: Avoids unsupported CSS flexbox and grid layouts. Uses stacked key-value blocks in `AccountInformation` and `BalanceSummary` to ensure legibility across mobile mail clients.
+
+### 5.3 PDF Renderer (`src/renderers/PdfStatement.tsx`)
+- **Document Root**: `<Document size="A4">`
+- **Compilation**: Compiled via `renderPdf()` into an ISO standard A4 PDF document (`210mm × 297mm`).
+- **Pagination Strategy**: Transactions are chunked into 12 rows per `Document.Page`. Each page receives a `<PageHeader>` carrying `BrandHeader(variant="compact")` and a `<PageFooter>` carrying `StatementFooter` with dynamic `<PageNumber />` and total page counters.
+- **Embedded Typography**: Bundled TrueType fonts (`NotoSans-Regular.ttf` and `NotoSans-Bold.ttf`) are registered with `@hyper-elements/react/pdf`, ensuring identical vector text rendering across host operating systems.
+
+### 5.4 Canvas Renderer (`src/renderers/CanvasSummary.tsx`)
+- **Document Root**: `<Canvas width={1200} height={630}>`
+- **Compilation**: Compiled via `renderImage()` at 2× scale to generate a 2400×1260 raster PNG.
+- **Snapshot Layout**: Designed as an executive financial dashboard card featuring primary opening/closing balances, 3 core financial driver cards (Income, Expenses, Net Flow), and activity breakdown summaries.
+
+---
+
+## 6. Export Pipeline Architecture
+
+The export pipeline supports both browser-driven client downloads and server-side batch generation:
+
+```mermaid
+sequenceDiagram
+    participant User as Browser Client
+    participant Frontend as exportPdf() / exportPng()
+    participant Server as server/export-server.ts
+    participant Hyper as @hyper-elements/react
+
+    User->>Frontend: Clicks "Download PDF" / "Download PNG"
+    Frontend->>Server: POST /api/export/{pdf|png} (JSON Payload)
+    Note over Server: Input sanitization, BOM stripping, payload limit (2 MB)
+    Server->>Hyper: renderPdf() / renderImage() with bundled Noto Sans
+    Hyper-->>Server: Binary Uint8Array buffer
+    Server-->>Frontend: 200 OK + application/pdf or image/png
+    Frontend->>User: downloadBytes() triggers browser file download
 ```
 
-FinSync automatically runs layout validation and node inspection across all four renderers during `npx tsx server/check-exports.ts` and `npm test`.
+### Security Defenses in Reference Export Server
+1. **Payload Size Defense**: Enforces a strict 2 MB JSON body limit to prevent denial-of-service memory exhaustion during rasterization.
+2. **Filename Sanitization**: Sanitizes filename parameters using `path.basename` and regex stripping (`[^a-zA-Z0-9_.-]`) to eliminate path traversal vulnerabilities.
+3. **CORS & Input Verification**: Rejects malformed statements lacking required account holder, period, or currency fields with descriptive HTTP 400 responses.
