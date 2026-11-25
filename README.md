@@ -2,6 +2,7 @@
 
 > **One financial statement. Four purpose-built formats. Powered by Hyper Elements.**
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-finsync--8g8o.onrender.com-46E3B7?logo=render&logoColor=white)](https://finsync-8g8o.onrender.com/)
 [![React 19](https://img.shields.io/badge/React-19.3-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Hyper Elements](https://img.shields.io/badge/Hyper%20Elements-0.5.0-6366F1)](https://github.com/hyper-elements/hyper-elements)
@@ -10,7 +11,7 @@
 
 FinSync is a reusable developer template built with **React**, **TypeScript**, and **[@hyper-elements/react@0.5.0](https://github.com/hyper-elements/hyper-elements)**. It demonstrates how a single, strongly-typed financial statement dataset compiles into four production-grade output media: **Responsive Web**, **Transactional Email**, **Print-Ready PDF**, and **Social / Dashboard Canvas**.
 
-[Live Demo](#quick-start) · [Architecture Guide](docs/ARCHITECTURE.md) · [Developer Guide](docs/DEVELOPER_GUIDE.md) · [API Reference](docs/API_REFERENCE.md) · [Customization Guide](docs/CUSTOMIZATION.md) · [Examples](docs/EXAMPLES.md)
+[Live Demo](https://finsync-8g8o.onrender.com/) · [Architecture Guide](docs/ARCHITECTURE.md) · [Developer Guide](docs/DEVELOPER_GUIDE.md) · [API Reference](docs/API_REFERENCE.md) · [Customization Guide](docs/CUSTOMIZATION.md) · [Examples](docs/EXAMPLES.md)
 
 ---
 
@@ -128,6 +129,9 @@ FinSync maintains a clear, transparent architectural boundary between applicatio
 ---
 
 ## 6. Quick Start
+
+> [!TIP]
+> **Hosted Live Demo:** You can test the interactive statement application immediately without local setup at **[finsync-8g8o.onrender.com](https://finsync-8g8o.onrender.com/)**.
 
 ### Prerequisites
 - **Node.js**: `v20.x` or `v22.x` (verified on Node 22+)
