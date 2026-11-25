@@ -8,6 +8,8 @@ export interface StatementFooterProps {
   showPageNumber?: boolean
   confidentialNotice?: string
   syntheticNotice?: string
+  borderTop?: boolean
+  variant?: 'standard' | 'pdf' | 'web'
 }
 
 export function StatementFooter({
@@ -15,9 +17,24 @@ export function StatementFooter({
   showPageNumber = false,
   confidentialNotice = 'Confidential',
   syntheticNotice = 'Synthetic demonstration',
+  borderTop = false,
+  variant = 'standard',
 }: StatementFooterProps) {
+  const hasBorderTop = borderTop || variant === 'web'
+
   return (
-    <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+    <Row
+      style={{
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        ...(hasBorderTop
+          ? {
+              border: { top: { width: 1, style: 'solid', color: token('colors.line') } },
+              padding: { top: 12 },
+            }
+          : {}),
+      }}
+    >
       <Text style={{ fontSize: 9, color: token('colors.muted') }}>
         {brandName} • {confidentialNotice}
       </Text>

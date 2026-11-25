@@ -9,8 +9,9 @@ import type { FinSyncLocale } from '../public-api'
 export interface AccountInformationProps {
   statement: Statement
   locale?: FinSyncLocale
-  layout?: 'row' | 'column' | 'pdf'
+  layout?: 'row' | 'column' | 'pdf' | 'canvas'
   borderRadius?: number
+  showDetails?: boolean
 }
 
 export function AccountInformation({
@@ -18,6 +19,7 @@ export function AccountInformation({
   locale = 'en-IN',
   layout = 'row',
   borderRadius = 9,
+  showDetails = true,
 }: AccountInformationProps) {
   const period = formatStatementPeriod(
     statement.statementPeriod.start,
@@ -25,6 +27,21 @@ export function AccountInformation({
     locale,
   )
   const maskedAccount = maskAccountNumber(statement.accountNumber)
+
+  if (layout === 'canvas') {
+    return (
+      <Row style={{ gap: 12, alignItems: 'center' }}>
+        {showDetails && (
+          <Text style={{ fontSize: 12, fontWeight: 700, color: token('colors.ink') }}>
+            {statement.accountHolder} · {maskedAccount}
+          </Text>
+        )}
+        <Text style={{ fontSize: 11, color: token('colors.muted') }}>
+          {period}
+        </Text>
+      </Row>
+    )
+  }
 
   if (layout === 'column') {
     return (

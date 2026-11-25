@@ -10,7 +10,7 @@ export interface BrandHeaderProps {
   eyebrow?: string
   title?: string
   period?: string
-  variant?: 'standard' | 'compact' | 'email'
+  variant?: 'standard' | 'compact' | 'email' | 'canvas'
 }
 
 export function BrandHeader({
@@ -39,6 +39,41 @@ export function BrandHeader({
         </Row>
         {period && (
           <Text style={{ fontSize: 10, color: token('colors.muted') }}>
+            {period}
+          </Text>
+        )}
+      </Row>
+    )
+  }
+
+  if (variant === 'canvas') {
+    return (
+      <Row style={{ gap: 10, alignItems: 'center' }}>
+        {logoUrl && (
+          <Image
+            src={logoUrl}
+            alt={logoAlt || `${brandName} logo`}
+            style={{ width: 32, height: 32 }}
+          />
+        )}
+        <Text style={{ fontSize: 22, fontWeight: 700, color: token('colors.primary') }}>
+          {brandName}
+        </Text>
+        <Text
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            color: token('colors.primary'),
+            padding: [4, 8],
+            backgroundColor: token('colors.primarySoft'),
+            borderRadius: token('radii.sm'),
+            letterSpacing: 0.5,
+          }}
+        >
+          {eyebrow || 'FINANCIAL SNAPSHOT'}
+        </Text>
+        {period && (
+          <Text style={{ fontSize: 11, color: token('colors.muted') }}>
             {period}
           </Text>
         )}

@@ -1,6 +1,6 @@
-import { formatExportCurrency, formatStatementPeriod, maskAccountNumber } from '../financial'
+import { formatExportCurrency, formatStatementPeriod } from '../financial'
 import type { Statement } from '../types'
-import { Canvas, Column, Image, Row, Text } from '@hyper-elements/react'
+import { Canvas, Column, Row, Text } from '@hyper-elements/react'
 import { createFinSyncTheme, token } from '../theme'
 import { exportPng } from '../export'
 import { useState } from 'react'
@@ -8,7 +8,7 @@ import type { FinSyncLocale, FinSyncRendererConfig } from '../public-api'
 import * as React from 'react'
 void React
 import { HyperPreview } from './HyperPreview'
-import { BalanceSummary, ReconciliationBanner } from '../components'
+import { AccountInformation, BalanceSummary, BrandHeader, ReconciliationBanner } from '../components'
 
 interface CanvasSummaryProps {
   statement: Statement
@@ -64,12 +64,6 @@ export function CanvasDocument({ statement, locale = 'en-IN', brandName = 'FinSy
   const resolvedLocale = resolvedConfig.locale
   const resolvedBrandName = resolvedConfig.brandName
   const optionalSections = resolvedConfig.optionalSections
-  const statementPeriod = formatStatementPeriod(
-    statement.statementPeriod.start,
-    statement.statementPeriod.end,
-    resolvedLocale,
-  )
-  const maskedAccount = maskAccountNumber(statement.accountNumber)
   const creditsCount = statement.transactions.filter((t) => t.type === 'CREDIT').length
   const debitsCount = statement.transactions.filter((t) => t.type === 'DEBIT').length
 
@@ -93,41 +87,19 @@ export function CanvasDocument({ statement, locale = 'en-IN', brandName = 'FinSy
     >
       {/* 1. Header Bar: Brand Identity & Account Overview */}
       <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Row style={{ gap: 10, alignItems: 'center' }}>
-          {resolvedConfig.logoUrl && (
-            <Image
-              src={resolvedConfig.logoUrl}
-              alt={resolvedConfig.logoAlt || `${resolvedBrandName} logo`}
-              style={{ width: 32, height: 32 }}
-            />
-          )}
-          <Text style={{ fontSize: 22, fontWeight: 700, color: token('colors.primary') }}>
-            {resolvedBrandName}
-          </Text>
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: token('colors.primary'),
-              padding: [4, 8],
-              backgroundColor: token('colors.primarySoft'),
-              borderRadius: token('radii.sm'),
-              letterSpacing: 0.5,
-            }}
-          >
-            FINANCIAL SNAPSHOT
-          </Text>
-        </Row>
-        <Row style={{ gap: 12, alignItems: 'center' }}>
-          {optionalSections?.accountDetails !== false && (
-            <Text style={{ fontSize: 12, fontWeight: 700, color: token('colors.ink') }}>
-              {statement.accountHolder} · {maskedAccount}
-            </Text>
-          )}
-          <Text style={{ fontSize: 11, color: token('colors.muted') }}>
-            {statementPeriod}
-          </Text>
-        </Row>
+        <BrandHeader
+          brandName={resolvedBrandName}
+          logoUrl={resolvedConfig.logoUrl}
+          logoAlt={resolvedConfig.logoAlt}
+          eyebrow="FINANCIAL SNAPSHOT"
+          variant="canvas"
+        />
+        <AccountInformation
+          statement={statement}
+          locale={resolvedLocale}
+          layout="canvas"
+          showDetails={optionalSections?.accountDetails !== false}
+        />
       </Row>
 
       {/* 2. Hero Section: Primary Account Balances */}

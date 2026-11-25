@@ -279,7 +279,7 @@ describe('cross-format renderer regressions', () => {
   describe('shared Hyper Elements component architecture', () => {
     const testTheme = createFinSyncTheme()
 
-    it('composes BrandHeader across Web, Email, and Document roots with zero diagnostics', () => {
+    it('composes BrandHeader across Web, Email, Document, and Canvas roots with zero diagnostics', () => {
       const pageWithBrand = React.createElement(
         Page,
         { theme: testTheme },
@@ -295,28 +295,38 @@ describe('cross-format renderer regressions', () => {
         { theme: testTheme },
         React.createElement(Document.Page, {}, React.createElement(BrandHeader, { brandName: 'Acme Bank', variant: 'compact', period: '01 Jun 2024 — 30 Jun 2024' })),
       )
+      const canvasWithBrand = React.createElement(
+        Canvas,
+        { theme: testTheme, width: 1200, height: 630 },
+        React.createElement(BrandHeader, { brandName: 'Acme Bank', variant: 'canvas', eyebrow: 'FINANCIAL SNAPSHOT' }),
+      )
 
       expect(validate(pageWithBrand).valid).toBe(true)
       expect(validate(emailWithBrand).valid).toBe(true)
       expect(validate(pdfWithBrand).valid).toBe(true)
+      expect(validate(canvasWithBrand).valid).toBe(true)
 
       expect(outline(pageWithBrand)).toContain('Acme Bank')
       expect(outline(emailWithBrand)).toContain('Acme Bank')
       expect(outline(pdfWithBrand)).toContain('Acme Bank')
+      expect(outline(canvasWithBrand)).toContain('Acme Bank')
     })
 
     it('renders AccountInformation across layouts with consistent masking', () => {
       const webAccount = React.createElement(Page, { theme: testTheme }, React.createElement(AccountInformation, { statement: reconciledStatement, layout: 'row' }))
       const emailAccount = React.createElement(Email, { theme: testTheme }, React.createElement(AccountInformation, { statement: reconciledStatement, layout: 'column' }))
       const pdfAccount = React.createElement(Document, { theme: testTheme }, React.createElement(Document.Page, {}, React.createElement(AccountInformation, { statement: reconciledStatement, layout: 'pdf' })))
+      const canvasAccount = React.createElement(Canvas, { theme: testTheme, width: 1200, height: 630 }, React.createElement(AccountInformation, { statement: reconciledStatement, layout: 'canvas' }))
 
       expect(validate(webAccount).valid).toBe(true)
       expect(validate(emailAccount).valid).toBe(true)
       expect(validate(pdfAccount).valid).toBe(true)
+      expect(validate(canvasAccount).valid).toBe(true)
 
       const webOutline = outline(webAccount)
       const emailOutline = outline(emailAccount)
       const pdfOutline = outline(pdfAccount)
+      const canvasOutline = outline(canvasAccount)
 
       expect(webOutline).toContain('•••• 4821')
       expect(webOutline).toContain('Maksud Rahman')
@@ -324,6 +334,8 @@ describe('cross-format renderer regressions', () => {
       expect(emailOutline).toContain('Maksud Rahman')
       expect(pdfOutline).toContain('•••• 4821')
       expect(pdfOutline).toContain('Maksud Rahman')
+      expect(canvasOutline).toContain('•••• 4821')
+      expect(canvasOutline).toContain('Maksud Rahman')
     })
 
     it('shares BalanceSummary across all four output roots with correct format variants', () => {
@@ -385,14 +397,17 @@ describe('cross-format renderer regressions', () => {
         rendererConfig: { brandName: 'FinSync', locale: 'en-IN', optionalSections: { financialSummary: false } },
       }))
       const footer = React.createElement(Document, { theme: testTheme }, React.createElement(Document.Page, {}, React.createElement(StatementFooter, { brandName: 'FinSync', showPageNumber: true })))
+      const webFooter = React.createElement(Page, { theme: testTheme }, React.createElement(StatementFooter, { brandName: 'FinSync', variant: 'web' }))
 
       expect(validate(fullBody).valid).toBe(true)
       expect(validate(hiddenSummary).valid).toBe(true)
       expect(validate(footer).valid).toBe(true)
+      expect(validate(webFooter).valid).toBe(true)
 
       expect(outline(fullBody)).toContain('Opening balance')
       expect(outline(hiddenSummary)).not.toContain('Opening balance')
       expect(outline(footer)).toContain('FinSync • Confidential')
+      expect(outline(webFooter)).toContain('FinSync • Confidential')
     })
 
     it('renders shared ReconciliationBanner only when statements are financially mismatched', () => {

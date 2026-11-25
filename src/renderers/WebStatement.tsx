@@ -6,7 +6,7 @@ import type { Statement, Transaction } from '../types'
 import type { FinSyncRendererConfig } from '../public-api'
 import { createFinSyncTheme, token } from '../theme'
 import { formatStatementPeriod } from '../financial'
-import { BrandHeader, ReconciliationBanner, StatementBody } from '../components'
+import { BrandHeader, ReconciliationBanner, StatementBody, StatementFooter } from '../components'
 
 interface WebStatementProps {
   statement: Statement
@@ -49,6 +49,10 @@ export function StatementPageDocument({ statement, transactions, rendererConfig 
           statement={statement}
           transactions={transactions}
           rendererConfig={rendererConfig}
+          variant="web"
+        />
+        <StatementFooter
+          brandName={brandName}
           variant="web"
         />
       </Section>
